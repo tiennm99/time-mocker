@@ -14,8 +14,8 @@ namespace TimeMocker.Hook
     [StructLayout(LayoutKind.Sequential)]
     public struct MockTimeInfo
     {
-        public long FakeUtcTicks;   // DateTime ticks (UTC)
-        public int  Enabled;        // 1 = mock active, 0 = passthrough
+        public long FakeUtcTicks; // DateTime ticks (UTC)
+        public int Enabled; // 1 = mock active, 0 = passthrough
     }
 
     // -------------------------------------------------------------------------
@@ -31,13 +31,13 @@ namespace TimeMocker.Hook
         {
             return new SYSTEMTIME
             {
-                wYear         = (ushort)dt.Year,
-                wMonth        = (ushort)dt.Month,
-                wDayOfWeek    = (ushort)dt.DayOfWeek,
-                wDay          = (ushort)dt.Day,
-                wHour         = (ushort)dt.Hour,
-                wMinute       = (ushort)dt.Minute,
-                wSecond       = (ushort)dt.Second,
+                wYear = (ushort)dt.Year,
+                wMonth = (ushort)dt.Month,
+                wDayOfWeek = (ushort)dt.DayOfWeek,
+                wDay = (ushort)dt.Day,
+                wHour = (ushort)dt.Hour,
+                wMinute = (ushort)dt.Minute,
+                wSecond = (ushort)dt.Second,
                 wMilliseconds = (ushort)dt.Millisecond
             };
         }
@@ -69,7 +69,7 @@ namespace TimeMocker.Hook
             try
             {
                 // Open the shared memory created by the UI process
-                _mmf  = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(mmfName);
+                _mmf = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(mmfName);
                 _view = _mmf.CreateViewAccessor(0, Marshal.SizeOf<MockTimeInfo>());
 
                 InstallHooks();
@@ -146,25 +146,25 @@ namespace TimeMocker.Hook
         // -------------------------------------------------------------------------
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate void GetSystemTimeDelegate(out SYSTEMTIME lpSystemTime);
+        private delegate void GetSystemTimeDelegate(out SYSTEMTIME lpSystemTime);
 
-        void GetSystemTime_Hook(out SYSTEMTIME lpSystemTime)
+        private void GetSystemTime_Hook(out SYSTEMTIME lpSystemTime)
         {
             lpSystemTime = SYSTEMTIME.FromDateTime(GetFakeUtc());
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate void GetLocalTimeDelegate(out SYSTEMTIME lpLocalTime);
+        private delegate void GetLocalTimeDelegate(out SYSTEMTIME lpLocalTime);
 
-        void GetLocalTime_Hook(out SYSTEMTIME lpLocalTime)
+        private void GetLocalTime_Hook(out SYSTEMTIME lpLocalTime)
         {
             lpLocalTime = SYSTEMTIME.FromDateTime(GetFakeUtc().ToLocalTime());
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate int NtQuerySystemTimeDelegate(out long systemTime);
+        private delegate int NtQuerySystemTimeDelegate(out long systemTime);
 
-        int NtQuerySystemTime_Hook(out long systemTime)
+        private int NtQuerySystemTime_Hook(out long systemTime)
         {
             // FILETIME epoch: Jan 1, 1601
             var epoch = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -173,15 +173,15 @@ namespace TimeMocker.Hook
         }
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-        delegate void GetSystemTimeAsFileTimeDelegate(out long lpFileTime);
+        private delegate void GetSystemTimeAsFileTimeDelegate(out long lpFileTime);
 
-        void GetSystemTimeAsFileTime_Hook(out long lpFileTime)
+        private void GetSystemTimeAsFileTime_Hook(out long lpFileTime)
         {
             var epoch = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             lpFileTime = (GetFakeUtc() - epoch).Ticks;
         }
 
-        void GetSystemTimePreciseAsFileTime_Hook(out long lpFileTime)
+        private void GetSystemTimePreciseAsFileTime_Hook(out long lpFileTime)
         {
             var epoch = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             lpFileTime = (GetFakeUtc() - epoch).Ticks;

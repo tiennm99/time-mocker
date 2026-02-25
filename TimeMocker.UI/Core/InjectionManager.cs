@@ -8,11 +8,11 @@ namespace TimeMocker.UI.Core
 {
     public class InjectedProcess
     {
-        public int ProcessId       { get; set; }
-        public string ProcessName  { get; set; }
-        public string ProcessPath  { get; set; }
+        public int ProcessId { get; set; }
+        public string ProcessName { get; set; }
+        public string ProcessPath { get; set; }
         public SharedMemoryManager Shm { get; set; }
-        public bool IsInjected     { get; set; }
+        public bool IsInjected { get; set; }
     }
 
     public class InjectionManager : IDisposable
@@ -35,10 +35,10 @@ namespace TimeMocker.UI.Core
 
             var entry = new InjectedProcess
             {
-                ProcessId   = process.Id,
+                ProcessId = process.Id,
                 ProcessName = process.ProcessName,
                 ProcessPath = TryGetPath(process),
-                Shm         = new SharedMemoryManager(process.Id)
+                Shm = new SharedMemoryManager(process.Id)
             };
 
             try
@@ -77,7 +77,7 @@ namespace TimeMocker.UI.Core
             entry.Shm.Write(new MockTimeInfo
             {
                 FakeUtcTicks = fakeUtc.Ticks,
-                Enabled      = enabled ? 1 : 0
+                Enabled = enabled ? 1 : 0
             });
         }
 
@@ -87,7 +87,10 @@ namespace TimeMocker.UI.Core
                 SetFakeTime(pid, fakeUtc, enabled);
         }
 
-        public bool IsInjected(int processId) => _injected.ContainsKey(processId);
+        public bool IsInjected(int processId)
+        {
+            return _injected.ContainsKey(processId);
+        }
 
         public IEnumerable<InjectedProcess> InjectedProcesses => _injected.Values;
 
@@ -105,11 +108,20 @@ namespace TimeMocker.UI.Core
 
         private static string TryGetPath(Process p)
         {
-            try   { return p.MainModule?.FileName ?? ""; }
-            catch { return ""; }
+            try
+            {
+                return p.MainModule?.FileName ?? "";
+            }
+            catch
+            {
+                return "";
+            }
         }
 
-        private void Log(string msg) => LogMessage?.Invoke(msg);
+        private void Log(string msg)
+        {
+            LogMessage?.Invoke(msg);
+        }
 
         public void Dispose()
         {

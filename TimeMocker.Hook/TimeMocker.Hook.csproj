@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <Platforms>x64</Platforms>
-    <AssemblyName>TimeMocker.Hook</AssemblyName>
-    <RootNamespace>TimeMocker.Hook</RootNamespace>
-    <OutputType>Library</OutputType>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="EasyHook" Version="2.7.7097.0" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <Platforms>x64</Platforms>
+        <AssemblyName>TimeMocker.Hook</AssemblyName>
+        <RootNamespace>TimeMocker.Hook</RootNamespace>
+        <OutputType>Library</OutputType>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="EasyHook" Version="2.7.7097.0"/>
+    </ItemGroup>
 </Project>

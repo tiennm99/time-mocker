@@ -22,10 +22,10 @@ namespace TimeMocker.UI.Core
         public SharedMemoryManager(int processId)
         {
             MmfName = MmfPrefix + processId;
-            _size   = Marshal.SizeOf<MockTimeInfo>();
-            _mmf    = MemoryMappedFile.CreateOrOpen(MmfName, _size,
-                          MemoryMappedFileAccess.ReadWrite);
-            _view   = _mmf.CreateViewAccessor(0, _size);
+            _size = Marshal.SizeOf<MockTimeInfo>();
+            _mmf = MemoryMappedFile.CreateOrOpen(MmfName, _size,
+                MemoryMappedFileAccess.ReadWrite);
+            _view = _mmf.CreateViewAccessor(0, _size);
         }
 
         public void Write(MockTimeInfo info)
@@ -47,6 +47,6 @@ namespace TimeMocker.UI.Core
     public struct MockTimeInfo
     {
         public long FakeUtcTicks;
-        public int  Enabled;
+        public int Enabled;
     }
 }
