@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Platforms>x64</Platforms>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>TimeMocker</AssemblyName>
+    <RootNamespace>TimeMocker.UI</RootNamespace>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="EasyHook" Version="2.7.7030.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Ensure the hook DLL is always next to the UI exe -->
+    <ProjectReference Include="..\TimeMocker.Hook\TimeMocker.Hook.csproj" />
+  </ItemGroup>
+</Project>
