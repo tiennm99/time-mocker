@@ -11,6 +11,7 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="EasyHook" Version="2.7.7097.0"/>
+        <PackageReference Include="System.Text.Json" Version="8.0.5"/>
     </ItemGroup>
     <ItemGroup>
         <!-- Ensure the hook DLL is always next to the UI exe -->

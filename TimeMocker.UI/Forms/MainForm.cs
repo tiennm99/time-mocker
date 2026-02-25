@@ -2,14 +2,54 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Windows.Forms;
 using TimeMocker.UI.Core;
 
 namespace TimeMocker.UI.Forms
 {
+    public class PatternRuleDto
+    {
+        public string Pattern { get; set; }
+        public bool UseRegex { get; set; }
+        public bool Enabled { get; set; } = true;
+    }
+
+    public class AppConfig
+    {
+        private static readonly string ConfigPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "TimeMocker",
+            "timemocker-config.json");
+
+        public bool AutoInjectEnabled { get; set; } = true;
+        public bool AutoAdvanceEnabled { get; set; } = true;
+        public List<PatternRuleDto> Patterns { get; set; } = new List<PatternRuleDto>();
+
+        public void Save()
+        {
+            var dir = Path.GetDirectoryName(ConfigPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        public static AppConfig Load()
+        {
+            return File.Exists(ConfigPath)
+                ? JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath)) ?? new AppConfig()
+                : new AppConfig();
+        }
+    }
+
     public partial class MainForm : Form
     {
+        private readonly AppConfig _config;
+
         private InjectionManager _injMgr;
         private ProcessWatcher _watcher;
 
@@ -50,6 +90,8 @@ namespace TimeMocker.UI.Forms
 
         public MainForm()
         {
+            _config = AppConfig.Load();
+
             Text = "TimeMocker – Process Time Injection";
             Size = new Size(900, 680);
             MinimumSize = new Size(750, 560);
@@ -67,6 +109,21 @@ namespace TimeMocker.UI.Forms
                 BeginInvoke((Action)(() => RefreshInjectedTab()));
 
             BuildUI();
+
+            // Load config settings
+            chkWatcherEnabled.Checked = _config.AutoInjectEnabled;
+            chkAutoAdvance.Checked = _config.AutoAdvanceEnabled;
+            foreach (var pattern in _config.Patterns)
+            {
+                _watcher.AddRule(new PatternRule
+                {
+                    Pattern = pattern.Pattern,
+                    UseRegex = pattern.UseRegex,
+                    Enabled = pattern.Enabled
+                });
+                dgvPatterns.Rows.Add(pattern.Pattern, pattern.UseRegex ? "Regex" : "Glob", pattern.Enabled);
+            }
+
             RefreshProcessList();
             UpdateTimePreview();
         }
@@ -679,6 +736,21 @@ namespace TimeMocker.UI.Forms
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // Save config
+            _config.AutoInjectEnabled = chkWatcherEnabled.Checked;
+            _config.AutoAdvanceEnabled = chkAutoAdvance.Checked;
+            _config.Patterns.Clear();
+            foreach (DataGridViewRow row in dgvPatterns.Rows)
+            {
+                _config.Patterns.Add(new PatternRuleDto
+                {
+                    Pattern = row.Cells[0].Value?.ToString() ?? "",
+                    UseRegex = row.Cells[1].Value?.ToString() == "Regex",
+                    Enabled = (bool)(row.Cells[2].Value ?? true)
+                });
+            }
+            _config.Save();
+
             _watcher.Stop();
             _injMgr.Dispose();
             base.OnFormClosing(e);
