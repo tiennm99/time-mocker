@@ -354,7 +354,7 @@ namespace TimeMocker.UI.Forms
 
             // Pattern input row
             var lblNew = new Label { Text = "Pattern:", AutoSize = true, Margin = new Padding(4, 12, 4, 0) };
-            txtNewPattern = new TextBox { Width = 280, Margin = new Padding(0, 10, 4, 0), PlaceholderText = "e.g. C:\\Games\\MyGame\\* or ^.*chrome.*$" };
+            txtNewPattern = new TextBox { Width = 280, Margin = new Padding(0, 10, 4, 0), Text = "e.g. C:\\Games\\MyGame\\* or ^.*chrome.*$" };
 
             rdoGlob  = new RadioButton { Text = "Glob",  Checked = true, AutoSize = true, Margin = new Padding(4, 12, 4, 0), ForeColor = Color.FromArgb(220, 220, 220) };
             rdoRegex = new RadioButton { Text = "Regex", AutoSize = true, Margin = new Padding(4, 12, 4, 0), ForeColor = Color.FromArgb(220, 220, 220) };
