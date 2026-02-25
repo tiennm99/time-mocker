@@ -8,9 +8,9 @@ namespace TimeMocker.UI.Core
 {
     public class PatternRule
     {
-        public string Pattern     { get; set; }   // glob or regex
-        public bool   UseRegex    { get; set; }
-        public bool   Enabled     { get; set; } = true;
+        public string Pattern { get; set; } // glob or regex
+        public bool UseRegex { get; set; }
+        public bool Enabled { get; set; } = true;
 
         private Regex _compiled;
 
@@ -41,8 +41,8 @@ namespace TimeMocker.UI.Core
         private bool _running;
 
         // Current fake time settings to apply on auto-inject
-        public DateTime FakeUtc  { get; set; } = DateTime.UtcNow;
-        public bool     MockEnabled { get; set; } = false;
+        public DateTime FakeUtc { get; set; } = DateTime.UtcNow;
+        public bool MockEnabled { get; set; } = false;
 
         public event Action<string> LogMessage;
         public event Action<InjectedProcess> ProcessAutoInjected;
@@ -54,9 +54,29 @@ namespace TimeMocker.UI.Core
             _injectionMgr = mgr;
         }
 
-        public void AddRule(PatternRule rule) { lock (_rules) _rules.Add(rule); }
-        public void RemoveRule(PatternRule rule) { lock (_rules) _rules.Remove(rule); }
-        public void ClearRules() { lock (_rules) _rules.Clear(); }
+        public void AddRule(PatternRule rule)
+        {
+            lock (_rules)
+            {
+                _rules.Add(rule);
+            }
+        }
+
+        public void RemoveRule(PatternRule rule)
+        {
+            lock (_rules)
+            {
+                _rules.Remove(rule);
+            }
+        }
+
+        public void ClearRules()
+        {
+            lock (_rules)
+            {
+                _rules.Clear();
+            }
+        }
 
         public void Start(int pollIntervalMs = 1500)
         {
@@ -83,8 +103,15 @@ namespace TimeMocker.UI.Core
                     {
                         if (_seen.Contains(p.Id)) continue;
 
-                        string path = "";
-                        try { path = p.MainModule?.FileName ?? ""; } catch { continue; }
+                        var path = "";
+                        try
+                        {
+                            path = p.MainModule?.FileName ?? "";
+                        }
+                        catch
+                        {
+                            continue;
+                        }
 
                         foreach (var rule in _rules)
                         {
@@ -103,16 +130,26 @@ namespace TimeMocker.UI.Core
                             {
                                 Log($"[AutoInject] Failed on [{p.Id}] {p.ProcessName}: {ex.Message}");
                             }
+
                             break;
                         }
                     }
                 }
             }
-            catch { /* scan errors are non-fatal */ }
+            catch
+            {
+                /* scan errors are non-fatal */
+            }
         }
 
-        private void Log(string msg) => LogMessage?.Invoke(msg);
+        private void Log(string msg)
+        {
+            LogMessage?.Invoke(msg);
+        }
 
-        public void Dispose() => Stop();
+        public void Dispose()
+        {
+            Stop();
+        }
     }
 }

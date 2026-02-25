@@ -11,37 +11,37 @@ namespace TimeMocker.UI.Forms
     public partial class MainForm : Form
     {
         private InjectionManager _injMgr;
-        private ProcessWatcher   _watcher;
+        private ProcessWatcher _watcher;
 
         // Controls
-        private TabControl     tabMain;
-        private TabPage        tabProcesses, tabPatterns, tabLog;
+        private TabControl tabMain;
+        private TabPage tabProcesses, tabPatterns, tabLog;
 
         // -- Process tab
-        private DataGridView   dgvProcesses;
-        private Button         btnRefresh, btnInject, btnEject;
-        private TextBox        txtProcSearch;
-        private Label          lblProcSearch;
+        private DataGridView dgvProcesses;
+        private Button btnRefresh, btnInject, btnEject;
+        private TextBox txtProcSearch;
+        private Label lblProcSearch;
 
         // -- Time panel (shared)
-        private GroupBox       grpTime;
+        private GroupBox grpTime;
         private DateTimePicker dtpDate;
         private DateTimePicker dtpTime;
-        private CheckBox       chkMockEnabled;
-        private Button         btnApply;
-        private Label          lblPreview;
-        private CheckBox       chkAutoAdvance;
+        private CheckBox chkMockEnabled;
+        private Button btnApply;
+        private Label lblPreview;
+        private CheckBox chkAutoAdvance;
 
         // -- Patterns tab
-        private DataGridView   dgvPatterns;
-        private Button         btnAddPattern, btnRemovePattern;
-        private CheckBox       chkWatcherEnabled;
-        private TextBox        txtNewPattern;
-        private RadioButton    rdoGlob, rdoRegex;
+        private DataGridView dgvPatterns;
+        private Button btnAddPattern, btnRemovePattern;
+        private CheckBox chkWatcherEnabled;
+        private TextBox txtNewPattern;
+        private RadioButton rdoGlob, rdoRegex;
 
         // -- Log tab
-        private RichTextBox    rtbLog;
-        private Button         btnClearLog;
+        private RichTextBox rtbLog;
+        private Button btnClearLog;
 
         // Time advancing
         private Timer _advanceTimer;
@@ -50,18 +50,18 @@ namespace TimeMocker.UI.Forms
 
         public MainForm()
         {
-            Text            = "TimeMocker – Process Time Injection";
-            Size            = new Size(900, 680);
-            MinimumSize     = new Size(750, 560);
-            StartPosition   = FormStartPosition.CenterScreen;
-            Font            = new Font("Segoe UI", 9f);
-            BackColor       = Color.FromArgb(30, 30, 35);
-            ForeColor       = Color.FromArgb(220, 220, 220);
+            Text = "TimeMocker – Process Time Injection";
+            Size = new Size(900, 680);
+            MinimumSize = new Size(750, 560);
+            StartPosition = FormStartPosition.CenterScreen;
+            Font = new Font("Segoe UI", 9f);
+            BackColor = Color.FromArgb(30, 30, 35);
+            ForeColor = Color.FromArgb(220, 220, 220);
 
-            _injMgr  = new InjectionManager();
+            _injMgr = new InjectionManager();
             _watcher = new ProcessWatcher(_injMgr);
 
-            _injMgr.LogMessage  += AppendLog;
+            _injMgr.LogMessage += AppendLog;
             _watcher.LogMessage += AppendLog;
             _watcher.ProcessAutoInjected += entry =>
                 BeginInvoke((Action)(() => RefreshInjectedTab()));
@@ -79,79 +79,83 @@ namespace TimeMocker.UI.Forms
             // ---- Shared time panel (top) ------------------------------------
             grpTime = new GroupBox
             {
-                Text      = "Mock Time Settings",
-                Dock      = DockStyle.Top,
-                Height    = 110,
+                Text = "Mock Time Settings",
+                Dock = DockStyle.Top,
+                Height = 110,
                 ForeColor = Color.FromArgb(130, 200, 255),
-                Padding   = new Padding(8)
+                Padding = new Padding(8)
             };
 
             var timeFlow = new FlowLayoutPanel
             {
-                Dock         = DockStyle.Fill,
-                FlowDirection= FlowDirection.LeftToRight,
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                AutoSize     = false
+                AutoSize = false
             };
 
             chkMockEnabled = new CheckBox
             {
-                Text      = "Enable Mock",
+                Text = "Enable Mock",
                 ForeColor = Color.LightGreen,
-                Width     = 110,
-                Height    = 30,
-                Margin    = new Padding(4, 12, 4, 0)
+                Width = 110,
+                Height = 30,
+                Margin = new Padding(4, 12, 4, 0)
             };
             chkMockEnabled.CheckedChanged += (s, e) => ApplyTime();
 
             dtpDate = new DateTimePicker
             {
-                Format  = DateTimePickerFormat.Short,
-                Width   = 120,
-                Height  = 26,
-                Value   = DateTime.Now,
-                Margin  = new Padding(4, 10, 4, 0)
+                Format = DateTimePickerFormat.Short,
+                Width = 120,
+                Height = 26,
+                Value = DateTime.Now,
+                Margin = new Padding(4, 10, 4, 0)
             };
             dtpDate.ValueChanged += (s, e) => UpdateTimePreview();
 
             dtpTime = new DateTimePicker
             {
-                Format      = DateTimePickerFormat.Time,
-                ShowUpDown  = true,
-                Width       = 100,
-                Height      = 26,
-                Value       = DateTime.Now,
-                Margin      = new Padding(4, 10, 4, 0)
+                Format = DateTimePickerFormat.Time,
+                ShowUpDown = true,
+                Width = 100,
+                Height = 26,
+                Value = DateTime.Now,
+                Margin = new Padding(4, 10, 4, 0)
             };
             dtpTime.ValueChanged += (s, e) => UpdateTimePreview();
 
             btnApply = MakeButton("Apply to All", 100, Color.FromArgb(0, 120, 215));
-            btnApply.Margin  = new Padding(8, 10, 4, 0);
-            btnApply.Click  += (s, e) => ApplyTime();
+            btnApply.Margin = new Padding(8, 10, 4, 0);
+            btnApply.Click += (s, e) => ApplyTime();
 
             var btnSetNow = MakeButton("Set to Now", 90, Color.FromArgb(60, 60, 70));
             btnSetNow.Margin = new Padding(4, 10, 4, 0);
-            btnSetNow.Click += (s, e) => { dtpDate.Value = dtpTime.Value = DateTime.Now; ApplyTime(); };
+            btnSetNow.Click += (s, e) =>
+            {
+                dtpDate.Value = dtpTime.Value = DateTime.Now;
+                ApplyTime();
+            };
 
             chkAutoAdvance = new CheckBox
             {
-                Text      = "Auto-advance time",
+                Text = "Auto-advance time",
                 ForeColor = Color.FromArgb(220, 220, 220),
-                Width     = 140,
-                Height    = 30,
-                Margin    = new Padding(8, 12, 4, 0),
-                Checked   = true
+                Width = 140,
+                Height = 30,
+                Margin = new Padding(8, 12, 4, 0),
+                Checked = true
             };
             chkAutoAdvance.CheckedChanged += ToggleAutoAdvance;
 
             lblPreview = new Label
             {
-                AutoSize  = false,
-                Width     = 260,
-                Height    = 20,
+                AutoSize = false,
+                Width = 260,
+                Height = 20,
                 ForeColor = Color.FromArgb(180, 180, 180),
-                Font      = new Font("Segoe UI", 8.5f, FontStyle.Italic),
-                Margin    = new Padding(4, 14, 0, 0)
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Italic),
+                Margin = new Padding(4, 14, 0, 0)
             };
 
             timeFlow.Controls.AddRange(new Control[]
@@ -164,16 +168,16 @@ namespace TimeMocker.UI.Forms
             // ---- Tabs -------------------------------------------------------
             tabMain = new TabControl
             {
-                Dock      = DockStyle.Fill,
-                DrawMode  = TabDrawMode.OwnerDrawFixed,
-                SizeMode  = TabSizeMode.Fixed,
-                ItemSize  = new Size(120, 28)
+                Dock = DockStyle.Fill,
+                DrawMode = TabDrawMode.OwnerDrawFixed,
+                SizeMode = TabSizeMode.Fixed,
+                ItemSize = new Size(120, 28)
             };
             tabMain.DrawItem += DrawTab;
 
             tabProcesses = new TabPage("Processes");
-            tabPatterns  = new TabPage("Auto-Inject Rules");
-            tabLog       = new TabPage("Log");
+            tabPatterns = new TabPage("Auto-Inject Rules");
+            tabLog = new TabPage("Log");
             StyleTab(tabProcesses);
             StyleTab(tabPatterns);
             StyleTab(tabLog);
@@ -202,9 +206,9 @@ namespace TimeMocker.UI.Forms
             // Top toolbar
             var toolbar = new FlowLayoutPanel
             {
-                Dock   = DockStyle.Top,
+                Dock = DockStyle.Top,
                 Height = 40,
-                Padding= new Padding(4)
+                Padding = new Padding(4)
             };
 
             lblProcSearch = new Label { Text = "Search:", AutoSize = true, Margin = new Padding(4, 8, 2, 0) };
@@ -229,18 +233,18 @@ namespace TimeMocker.UI.Forms
             // Grid – split: available processes | injected processes
             var split = new SplitContainer
             {
-                Dock        = DockStyle.Fill,
+                Dock = DockStyle.Fill,
                 Orientation = Orientation.Horizontal,
                 SplitterDistance = 300,
-                SplitterWidth    = 5,
-                BackColor        = Color.FromArgb(50, 50, 55)
+                SplitterWidth = 5,
+                BackColor = Color.FromArgb(50, 50, 55)
             };
 
             // Top: available
             var lblAvail = MakeSectionLabel("Running Processes");
             dgvProcesses = MakeGrid();
             dgvProcesses.Columns.AddRange(
-                Col("PID",  50),  Col("Name", 160), Col("Path", 380));
+                Col("PID", 50), Col("Name", 160), Col("Path", 380));
 
             var topPanel = new Panel { Dock = DockStyle.Fill };
             topPanel.Controls.Add(dgvProcesses);
@@ -274,7 +278,8 @@ namespace TimeMocker.UI.Forms
 
         private class ProcessRow
         {
-            public int Id; public string Name, Path;
+            public int Id;
+            public string Name, Path;
         }
 
         private void RefreshProcessList()
@@ -282,10 +287,18 @@ namespace TimeMocker.UI.Forms
             _allRows.Clear();
             foreach (var p in Process.GetProcesses().OrderBy(x => x.ProcessName))
             {
-                string path = "";
-                try { path = p.MainModule?.FileName ?? ""; } catch { }
+                var path = "";
+                try
+                {
+                    path = p.MainModule?.FileName ?? "";
+                }
+                catch
+                {
+                }
+
                 _allRows.Add(new ProcessRow { Id = p.Id, Name = p.ProcessName, Path = path });
             }
+
             FilterProcessList();
             RefreshInjectedTab();
         }
@@ -312,7 +325,11 @@ namespace TimeMocker.UI.Forms
         private void OnInjectClick(object sender, EventArgs e)
         {
             var selected = GetSelectedProcessId(dgvProcesses);
-            if (selected == null) { ShowInfo("Select a process first."); return; }
+            if (selected == null)
+            {
+                ShowInfo("Select a process first.");
+                return;
+            }
 
             try
             {
@@ -333,7 +350,12 @@ namespace TimeMocker.UI.Forms
         private void OnEjectClick(object sender, EventArgs e)
         {
             var selected = GetSelectedProcessId(_dgvInjected);
-            if (selected == null) { ShowInfo("Select an injected process first."); return; }
+            if (selected == null)
+            {
+                ShowInfo("Select an injected process first.");
+                return;
+            }
+
             _injMgr.Eject(selected.Value);
             RefreshInjectedTab();
         }
@@ -347,18 +369,27 @@ namespace TimeMocker.UI.Forms
 
             var toolbar = new FlowLayoutPanel
             {
-                Dock      = DockStyle.Top,
-                Height    = 80,
-                Padding   = new Padding(4),
+                Dock = DockStyle.Top,
+                Height = 80,
+                Padding = new Padding(4),
                 BackColor = Color.FromArgb(30, 30, 35)
             };
 
             // Pattern input row
             var lblNew = new Label { Text = "Pattern:", AutoSize = true, Margin = new Padding(4, 12, 4, 0) };
-            txtNewPattern = new TextBox { Width = 280, Margin = new Padding(0, 10, 4, 0), Text = "e.g. C:\\Games\\MyGame\\* or ^.*chrome.*$" };
+            txtNewPattern = new TextBox
+                { Width = 280, Margin = new Padding(0, 10, 4, 0), Text = "e.g. C:\\Games\\MyGame\\* or ^.*chrome.*$" };
 
-            rdoGlob  = new RadioButton { Text = "Glob",  Checked = true, AutoSize = true, Margin = new Padding(4, 12, 4, 0), ForeColor = Color.FromArgb(220, 220, 220) };
-            rdoRegex = new RadioButton { Text = "Regex", AutoSize = true, Margin = new Padding(4, 12, 4, 0), ForeColor = Color.FromArgb(220, 220, 220) };
+            rdoGlob = new RadioButton
+            {
+                Text = "Glob", Checked = true, AutoSize = true, Margin = new Padding(4, 12, 4, 0),
+                ForeColor = Color.FromArgb(220, 220, 220)
+            };
+            rdoRegex = new RadioButton
+            {
+                Text = "Regex", AutoSize = true, Margin = new Padding(4, 12, 4, 0),
+                ForeColor = Color.FromArgb(220, 220, 220)
+            };
 
             btnAddPattern = MakeButton("+ Add Rule", 100, Color.FromArgb(0, 150, 80));
             btnAddPattern.Margin = new Padding(8, 8, 4, 0);
@@ -370,11 +401,11 @@ namespace TimeMocker.UI.Forms
 
             chkWatcherEnabled = new CheckBox
             {
-                Text      = "Enable Auto-Inject Watcher",
+                Text = "Enable Auto-Inject Watcher",
                 ForeColor = Color.LightGreen,
-                AutoSize  = true,
-                Margin    = new Padding(16, 12, 4, 0),
-                Checked   = true
+                AutoSize = true,
+                Margin = new Padding(16, 12, 4, 0),
+                Checked = true
             };
             chkWatcherEnabled.CheckedChanged += OnWatcherToggle;
 
@@ -405,9 +436,9 @@ namespace TimeMocker.UI.Forms
 
             var rule = new PatternRule
             {
-                Pattern  = pat,
+                Pattern = pat,
                 UseRegex = rdoRegex.Checked,
-                Enabled  = true
+                Enabled = true
             };
             _watcher.AddRule(rule);
             dgvPatterns.Rows.Add(pat, rule.UseRegex ? "Regex" : "Glob", true);
@@ -423,22 +454,20 @@ namespace TimeMocker.UI.Forms
             dgvPatterns.Rows.RemoveAt(idx);
             // Re-add remaining
             foreach (DataGridViewRow row in dgvPatterns.Rows)
-            {
                 _watcher.AddRule(new PatternRule
                 {
-                    Pattern  = row.Cells[0].Value?.ToString() ?? "",
+                    Pattern = row.Cells[0].Value?.ToString() ?? "",
                     UseRegex = row.Cells[1].Value?.ToString() == "Regex",
-                    Enabled  = (bool)(row.Cells[2].Value ?? true)
+                    Enabled = (bool)(row.Cells[2].Value ?? true)
                 });
-            }
         }
 
         private void OnWatcherToggle(object sender, EventArgs e)
         {
             if (chkWatcherEnabled.Checked)
             {
-                _watcher.FakeUtc      = GetFakeTime().ToUniversalTime();
-                _watcher.MockEnabled  = chkMockEnabled.Checked;
+                _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
+                _watcher.MockEnabled = chkMockEnabled.Checked;
                 _watcher.Start();
                 AppendLog("Process watcher started.");
             }
@@ -456,16 +485,16 @@ namespace TimeMocker.UI.Forms
         {
             rtbLog = new RichTextBox
             {
-                Dock      = DockStyle.Fill,
+                Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(18, 18, 22),
                 ForeColor = Color.FromArgb(180, 240, 180),
-                Font      = new Font("Consolas", 9f),
-                ReadOnly  = true,
-                ScrollBars= RichTextBoxScrollBars.Vertical
+                Font = new Font("Consolas", 9f),
+                ReadOnly = true,
+                ScrollBars = RichTextBoxScrollBars.Vertical
             };
 
             btnClearLog = MakeButton("Clear", 70, Color.FromArgb(60, 60, 70));
-            btnClearLog.Dock  = DockStyle.Bottom;
+            btnClearLog.Dock = DockStyle.Bottom;
             btnClearLog.Click += (s, e) => rtbLog.Clear();
 
             tabLog.Controls.Add(rtbLog);
@@ -475,21 +504,24 @@ namespace TimeMocker.UI.Forms
         // =====================================================================
         // Time Logic
         // =====================================================================
-        private DateTime GetFakeTime() =>
-            dtpDate.Value.Date + dtpTime.Value.TimeOfDay;
+        private DateTime GetFakeTime()
+        {
+            return dtpDate.Value.Date + dtpTime.Value.TimeOfDay;
+        }
 
         private void ApplyTime()
         {
             var dt = GetFakeTime().ToUniversalTime();
             _injMgr.SetFakeTimeAll(dt, chkMockEnabled.Checked);
-            _watcher.FakeUtc     = dt;
+            _watcher.FakeUtc = dt;
             _watcher.MockEnabled = chkMockEnabled.Checked;
 
             if (chkAutoAdvance.Checked)
             {
-                _fakeTimeBase    = GetFakeTime();
+                _fakeTimeBase = GetFakeTime();
                 _advanceStartReal = DateTime.Now;
             }
+
             UpdateTimePreview();
         }
 
@@ -505,7 +537,7 @@ namespace TimeMocker.UI.Forms
         {
             if (chkAutoAdvance.Checked)
             {
-                _fakeTimeBase    = GetFakeTime();
+                _fakeTimeBase = GetFakeTime();
                 _advanceStartReal = DateTime.Now;
                 _advanceTimer.Start();
             }
@@ -536,7 +568,12 @@ namespace TimeMocker.UI.Forms
         private void AppendLog(string msg)
         {
             if (rtbLog == null) return;
-            if (rtbLog.InvokeRequired) { rtbLog.BeginInvoke((Action)(() => AppendLog(msg))); return; }
+            if (rtbLog.InvokeRequired)
+            {
+                rtbLog.BeginInvoke((Action)(() => AppendLog(msg)));
+                return;
+            }
+
             rtbLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {msg}\n");
             rtbLog.ScrollToCaret();
         }
@@ -552,59 +589,66 @@ namespace TimeMocker.UI.Forms
         {
             var g = new DataGridView
             {
-                Dock                  = DockStyle.Fill,
-                ReadOnly              = true,
-                AllowUserToAddRows    = false,
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
                 AllowUserToDeleteRows = false,
-                SelectionMode         = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect           = false,
-                BackgroundColor       = Color.FromArgb(25, 25, 30),
-                ForeColor             = Color.FromArgb(220, 220, 220),
-                GridColor             = Color.FromArgb(50, 50, 55),
-                BorderStyle           = BorderStyle.None,
-                RowHeadersVisible     = false,
-                AutoSizeColumnsMode   = DataGridViewAutoSizeColumnsMode.None,
-                ColumnHeadersHeight   = 28
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = Color.FromArgb(25, 25, 30),
+                ForeColor = Color.FromArgb(220, 220, 220),
+                GridColor = Color.FromArgb(50, 50, 55),
+                BorderStyle = BorderStyle.None,
+                RowHeadersVisible = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+                ColumnHeadersHeight = 28
             };
             g.EnableHeadersVisualStyles = false;
             g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(40, 40, 48);
             g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 200, 255);
-            g.DefaultCellStyle.SelectionBackColor     = Color.FromArgb(0, 90, 160);
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(0, 90, 160);
             g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(30, 30, 38);
             return g;
         }
 
-        private static DataGridViewTextBoxColumn Col(string name, int w) =>
-            new DataGridViewTextBoxColumn { HeaderText = name, Width = w, SortMode = DataGridViewColumnSortMode.NotSortable };
+        private static DataGridViewTextBoxColumn Col(string name, int w)
+        {
+            return new DataGridViewTextBoxColumn
+                { HeaderText = name, Width = w, SortMode = DataGridViewColumnSortMode.NotSortable };
+        }
 
-        private static DataGridViewCheckBoxColumn BoolCol(string name) =>
-            new DataGridViewCheckBoxColumn { HeaderText = name, Width = 65 };
+        private static DataGridViewCheckBoxColumn BoolCol(string name)
+        {
+            return new DataGridViewCheckBoxColumn { HeaderText = name, Width = 65 };
+        }
 
         private static Button MakeButton(string text, int w, Color bg)
         {
             return new Button
             {
-                Text      = text,
-                Width     = w,
-                Height    = 26,
+                Text = text,
+                Width = w,
+                Height = 26,
                 BackColor = bg,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Cursor    = Cursors.Hand
+                Cursor = Cursors.Hand
             };
         }
 
-        private static Label MakeSectionLabel(string text) =>
-            new Label
+        private static Label MakeSectionLabel(string text)
+        {
+            return new Label
             {
-                Text      = text,
-                Dock      = DockStyle.Top,
-                Height    = 22,
+                Text = text,
+                Dock = DockStyle.Top,
+                Height = 22,
                 ForeColor = Color.FromArgb(130, 200, 255),
-                Font      = new Font("Segoe UI", 8.5f, FontStyle.Bold),
-                Padding   = new Padding(4, 2, 0, 0),
+                Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
+                Padding = new Padding(4, 2, 0, 0),
                 BackColor = Color.FromArgb(35, 35, 42)
             };
+        }
 
         private static void StyleTab(TabPage tab)
         {
@@ -617,18 +661,21 @@ namespace TimeMocker.UI.Forms
             var tab = (TabControl)sender;
             var page = tab.TabPages[e.Index];
             var rect = e.Bounds;
-            bool selected = e.Index == tab.SelectedIndex;
+            var selected = e.Index == tab.SelectedIndex;
 
             using var bg = new SolidBrush(selected ? Color.FromArgb(0, 90, 160) : Color.FromArgb(40, 40, 48));
             e.Graphics.FillRectangle(bg, rect);
 
-            var sf = new System.Drawing.StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            var sf = new StringFormat
+                { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
             using var fg = new SolidBrush(selected ? Color.White : Color.FromArgb(180, 180, 180));
             e.Graphics.DrawString(page.Text, Font, fg, rect, sf);
         }
 
-        private static void ShowInfo(string msg) =>
+        private static void ShowInfo(string msg)
+        {
             MessageBox.Show(msg, "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {

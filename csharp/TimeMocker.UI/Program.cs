@@ -7,7 +7,7 @@ namespace TimeMocker.UI
     internal static class Program
     {
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -41,12 +41,18 @@ namespace TimeMocker.UI
         {
             var info = new System.Diagnostics.ProcessStartInfo
             {
-                FileName        = Application.ExecutablePath,
+                FileName = Application.ExecutablePath,
                 UseShellExecute = true,
-                Verb            = "runas"
+                Verb = "runas"
             };
-            try { System.Diagnostics.Process.Start(info); }
-            catch { /* user cancelled UAC */ }
+            try
+            {
+                System.Diagnostics.Process.Start(info);
+            }
+            catch
+            {
+                /* user cancelled UAC */
+            }
         }
     }
 }
