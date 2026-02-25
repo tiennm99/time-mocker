@@ -8,6 +8,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="EasyHook" Version="2.7.7030.0" />
+    <PackageReference Include="EasyHook" Version="2.7.7097.0" />
   </ItemGroup>
 </Project>
