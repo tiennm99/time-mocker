@@ -139,7 +139,8 @@ namespace TimeMocker.UI.Forms
                 ForeColor = Color.FromArgb(220, 220, 220),
                 Width     = 140,
                 Height    = 30,
-                Margin    = new Padding(8, 12, 4, 0)
+                Margin    = new Padding(8, 12, 4, 0),
+                Checked   = true
             };
             chkAutoAdvance.CheckedChanged += ToggleAutoAdvance;
 
@@ -372,7 +373,8 @@ namespace TimeMocker.UI.Forms
                 Text      = "Enable Auto-Inject Watcher",
                 ForeColor = Color.LightGreen,
                 AutoSize  = true,
-                Margin    = new Padding(16, 12, 4, 0)
+                Margin    = new Padding(16, 12, 4, 0),
+                Checked   = true
             };
             chkWatcherEnabled.CheckedChanged += OnWatcherToggle;
 
