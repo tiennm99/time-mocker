@@ -10,17 +10,19 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.x
 
       - name: Build Solution
-        run: msbuild TimeMocker.sln -p:Configuration=Release -p:Platform=x64 -m
+        run: dotnet build TimeMocker.sln -c Release -p:Platform=x64
 
       - name: Prepare Release Artifacts
         run: |
