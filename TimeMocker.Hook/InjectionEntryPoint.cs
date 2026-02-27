@@ -65,23 +65,29 @@ namespace TimeMocker.Hook
 
         public void Run(RemoteHooking.IContext context, string mmfName)
         {
+            string logPath = Path.Combine(Path.GetTempPath(), "TimeMocker.Hook.log");
+
             try
             {
+                File.AppendAllText(logPath, $"[{DateTime.Now}] Starting hook, MMF: {mmfName}\r\n");
+
                 // Open the shared memory created by the UI process
                 _mmf = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(mmfName);
                 _view = _mmf.CreateViewAccessor(0, Marshal.SizeOf<MockTimeInfo>());
+                File.AppendAllText(logPath, $"[{DateTime.Now}] MMF opened successfully\r\n");
 
                 InstallHooks();
+                File.AppendAllText(logPath, $"[{DateTime.Now}] Hooks installed successfully\r\n");
+
                 RemoteHooking.WakeUpProcess();
+                File.AppendAllText(logPath, $"[{DateTime.Now}] Process woken up\r\n");
 
                 // Keep alive until process exits
                 while (true) Thread.Sleep(500);
             }
             catch (Exception ex)
             {
-                File.AppendAllText(
-                    Path.Combine(Path.GetTempPath(), "TimeMocker.Hook.log"),
-                    $"[{DateTime.Now}] ERROR: {ex}\r\n");
+                File.AppendAllText(logPath, $"[{DateTime.Now}] ERROR: {ex.GetType().Name}: {ex.Message}\r\n{ex.StackTrace}\r\n");
             }
             finally
             {
