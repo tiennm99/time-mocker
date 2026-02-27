@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using EasyHook;
 
 namespace TimeMocker.UI.Core
@@ -27,9 +26,6 @@ namespace TimeMocker.UI.Core
         private static readonly string HookDllPathX86 =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TimeMocker.Hook.x86.dll");
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool IsWow64Process(IntPtr hProcess, out bool wow64Process);
-
         public event Action<string> LogMessage;
 
         // -----------------------------------------------------------------------
@@ -53,19 +49,16 @@ namespace TimeMocker.UI.Core
                 // Write initial delta (zero = real time) before hook starts reading
                 entry.Shm.Write(new MockTimeInfo { DeltaTicks = 0 });
 
-                // Determine which DLL to use based on target process architecture
-                string hookDllPath = GetHookDllPath(process);
-
                 RemoteHooking.Inject(
                     process.Id,
                     InjectionOptions.DoNotRequireStrongName,
-                    hookDllPath,
-                    hookDllPath,
+                    HookDllPathX86,
+                    HookDllPathX64,
                     entry.Shm.MmfName);
 
                 entry.IsInjected = true;
                 _injected[process.Id] = entry;
-                Log($"Injected into [{process.Id}] {process.ProcessName} ({GetArchitectureName(process)})");
+                Log($"Injected into [{process.Id}] {process.ProcessName}");
             }
             catch (Exception ex)
             {
@@ -75,54 +68,6 @@ namespace TimeMocker.UI.Core
             }
 
             return entry;
-        }
-
-        private static string GetHookDllPath(Process process)
-        {
-            bool is64BitTarget = Is64BitProcess(process);
-
-            if (is64BitTarget)
-            {
-                if (!File.Exists(HookDllPathX64))
-                    throw new FileNotFoundException($"x64 hook DLL not found: {HookDllPathX64}");
-                return HookDllPathX64;
-            }
-            else
-            {
-                if (!File.Exists(HookDllPathX86))
-                    throw new FileNotFoundException($"x86 hook DLL not found: {HookDllPathX86}");
-                return HookDllPathX86;
-            }
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool IsWow64Process2(
-            IntPtr hProcess,
-            out ushort pProcessMachine,
-            out ushort pNativeMachine);
-
-        private static bool Is64BitProcess(Process process)
-        {
-            if (!Environment.Is64BitOperatingSystem)
-                return false;
-
-            ushort processMachine, nativeMachine;
-            if (IsWow64Process2(process.Handle, out processMachine, out nativeMachine))
-            {
-                // IMAGE_FILE_MACHINE_UNKNOWN (0) means it's a native 64-bit process
-                // IMAGE_FILE_MACHINE_I386 (0x014c) means it's 32-bit on 64-bit Windows
-                return processMachine == 0x0000; // 0 = native, not emulated
-            }
-
-            // Fallback
-            bool isWow64;
-            IsWow64Process(process.Handle, out isWow64);
-            return !isWow64;
-        }
-
-        private static string GetArchitectureName(Process process)
-        {
-            return Is64BitProcess(process) ? "x64" : "x86";
         }
 
         // -----------------------------------------------------------------------
