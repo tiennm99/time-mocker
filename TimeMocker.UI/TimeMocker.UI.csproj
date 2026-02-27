@@ -13,8 +13,41 @@
         <PackageReference Include="EasyHook" Version="2.7.7097.0"/>
         <PackageReference Include="System.Text.Json" Version="8.0.5"/>
     </ItemGroup>
-    <ItemGroup>
-        <!-- Ensure the hook DLL is always next to the UI exe -->
-        <ProjectReference Include="..\TimeMocker.Hook\TimeMocker.Hook.csproj"/>
-    </ItemGroup>
+    <!-- Build both x86 and x64 versions of the hook DLL and copy with architecture suffix -->
+    <Target Name="BuildAllHookDlls" AfterTargets="Build" DependsOnTargets="_BuildX64Hook;_BuildX86Hook;_CopyHookDlls">
+    </Target>
+    <Target Name="_BuildX64Hook">
+        <MSBuild Projects="$(SolutionDir)TimeMocker.Hook\TimeMocker.Hook.csproj"
+                 Properties="Platform=x64;Configuration=$(Configuration)"
+                 Targets="Build"
+                 RunEachTargetSeparately="true" />
+    </Target>
+    <Target Name="_BuildX86Hook">
+        <MSBuild Projects="$(SolutionDir)TimeMocker.Hook\TimeMocker.Hook.csproj"
+                 Properties="Platform=x86;Configuration=$(Configuration)"
+                 Targets="Build"
+                 RunEachTargetSeparately="true" />
+    </Target>
+    <Target Name="_CopyHookDlls" DependsOnTargets="_BuildX64Hook;_BuildX86Hook">
+        <PropertyGroup>
+            <HookBuildDir>$(SolutionDir)TimeMocker.Hook\bin\</HookBuildDir>
+            <X64DllPath>$(HookBuildDir)x64\$(Configuration)\net48\TimeMocker.Hook.dll</X64DllPath>
+            <X86DllPath>$(HookBuildDir)x86\$(Configuration)\net48\TimeMocker.Hook.dll</X86DllPath>
+            <X64Dest>$(OutputPath)TimeMocker.Hook.x64.dll</X64Dest>
+            <X86Dest>$(OutputPath)TimeMocker.Hook.x86.dll</X86Dest>
+        </PropertyGroup>
+        <!-- Copy x64 version with x64 suffix -->
+        <Copy SourceFiles="$(X64DllPath)"
+              DestinationFiles="$(X64Dest)"
+              SkipUnchangedFiles="true" />
+        <!-- Copy x86 version with x86 suffix -->
+        <Copy SourceFiles="$(X86DllPath)"
+              DestinationFiles="$(X86Dest)"
+              SkipUnchangedFiles="true" />
+    </Target>
+    <!-- Clean the renamed DLLs as well -->
+    <Target Name="CleanRenamedHookDlls" AfterTargets="Clean">
+        <Delete Files="$(OutputPath)TimeMocker.Hook.x64.dll" TreatErrorsAsWarnings="true" />
+        <Delete Files="$(OutputPath)TimeMocker.Hook.x86.dll" TreatErrorsAsWarnings="true" />
+    </Target>
 </Project>

@@ -363,6 +363,8 @@ namespace TimeMocker.UI.Forms
                 }
                 catch
                 {
+                    // Skip processes we can't access
+                    continue;
                 }
 
                 _allRows.Add(new ProcessRow
@@ -390,6 +392,8 @@ namespace TimeMocker.UI.Forms
             dgvProcesses.ResumeLayout();
         }
 
+        // =====================================================================
+        // Patterns Tab
         // =====================================================================
         // Patterns Tab
         // =====================================================================
