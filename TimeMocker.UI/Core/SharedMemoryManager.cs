@@ -46,7 +46,7 @@ namespace TimeMocker.UI.Core
     [StructLayout(LayoutKind.Sequential)]
     public struct MockTimeInfo
     {
-        public long FakeUtcTicks;
-        public int Enabled;
+        public long DeltaTicks; // Offset to add to DateTime.UtcNow.Ticks (can be negative)
+        public int Enabled; // 1 = mock active, 0 = passthrough
     }
 }

@@ -44,7 +44,7 @@ namespace TimeMocker.UI.Core
             try
             {
                 // Write disabled state initially so hook passes through
-                entry.Shm.Write(new MockTimeInfo { Enabled = 0, FakeUtcTicks = DateTime.UtcNow.Ticks });
+                entry.Shm.Write(new MockTimeInfo { Enabled = 0, DeltaTicks = 0 });
 
                 RemoteHooking.Inject(
                     process.Id,
@@ -74,9 +74,20 @@ namespace TimeMocker.UI.Core
         {
             if (!_injected.TryGetValue(processId, out var entry)) return;
 
+            long deltaTicks;
+            if (enabled)
+            {
+                // Calculate delta: (desired fake time) - (current real UTC time)
+                deltaTicks = fakeUtc.Ticks - DateTime.UtcNow.Ticks;
+            }
+            else
+            {
+                deltaTicks = 0;
+            }
+
             entry.Shm.Write(new MockTimeInfo
             {
-                FakeUtcTicks = fakeUtc.Ticks,
+                DeltaTicks = deltaTicks,
                 Enabled = enabled ? 1 : 0
             });
         }
@@ -100,7 +111,7 @@ namespace TimeMocker.UI.Core
         public void Eject(int processId)
         {
             if (!_injected.TryGetValue(processId, out var entry)) return;
-            entry.Shm.Write(new MockTimeInfo { Enabled = 0 }); // disable mock first
+            entry.Shm.Write(new MockTimeInfo { Enabled = 0, DeltaTicks = 0 }); // disable mock first
             entry.Shm.Dispose();
             _injected.Remove(processId);
             Log($"Ejected from [{processId}] {entry.ProcessName}");
