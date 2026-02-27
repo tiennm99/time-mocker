@@ -1,0 +1,46 @@
+name: Create Draft Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Build Solution
+        run: dotnet build TimeMocker.sln -c Release -p:Platform=x64
+
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir release
+          copy TimeMocker.UI\bin\x64\Release\net48\TimeMocker.exe release\
+          copy TimeMocker.UI\bin\x64\Release\net48\TimeMocker.Hook.x64.dll release\
+          copy TimeMocker.UI\bin\x64\Release\net48\TimeMocker.Hook.x86.dll release\
+          copy TimeMocker.UI\bin\x64\Release\net48\EasyHook.dll release\
+          copy TimeMocker.UI\bin\x64\Release\net48\System.Text.Json.dll release\
+
+      - name: Zip Release
+        run: Compress-Archive -Path release\* -DestinationPath TimeMocker-x64.zip
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: TimeMocker-x64.zip
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
