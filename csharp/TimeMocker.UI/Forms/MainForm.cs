@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Timers;
 using System.Windows.Forms;
 using TimeMocker.UI.Core;
 
@@ -78,6 +79,9 @@ namespace TimeMocker.UI.Forms
         private RichTextBox rtbLog;
         private Button btnClearLog;
 
+        private System.Timers.Timer _previewUpdateTimer;
+        private TimeSpan _fakeDelta = TimeSpan.Zero; // Stored offset from real time
+
         public MainForm()
         {
             _config = AppConfig.Load();
@@ -120,6 +124,11 @@ namespace TimeMocker.UI.Forms
             _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
             _watcher.Start();
             AppendLog("Process watcher started.");
+
+            // Start preview update timer (1 second interval)
+            _previewUpdateTimer = new System.Timers.Timer(1000);
+            _previewUpdateTimer.Elapsed += (s, e) => BeginInvoke((Action)(UpdateTimePreview));
+            _previewUpdateTimer.Start();
         }
 
         // =====================================================================
@@ -513,11 +522,19 @@ namespace TimeMocker.UI.Forms
         // =====================================================================
         private DateTime GetFakeTime()
         {
-            return dtpDate.Value.Date + dtpTime.Value.TimeOfDay;
+            // Return current real time + stored delta (time advances naturally)
+            return DateTime.Now + _fakeDelta;
         }
 
         private void ApplyTime()
         {
+            // Calculate the desired time from the picker
+            var desiredTime = dtpDate.Value.Date + dtpTime.Value.TimeOfDay;
+
+            // Store the delta (offset from real time)
+            _fakeDelta = desiredTime - DateTime.Now;
+
+            // Apply to all injected processes
             var dt = GetFakeTime().ToUniversalTime();
             _injMgr.SetFakeTimeAll(dt);
             _watcher.FakeUtc = dt;
@@ -528,13 +545,37 @@ namespace TimeMocker.UI.Forms
         private void UpdateTimePreview()
         {
             var dt = GetFakeTime();
-            // Calculate what the current offset is
-            var realNow = DateTime.Now;
-            var delta = dt - realNow;
-            var deltaStr = delta.TotalSeconds >= 0
-                ? $"+{delta.TotalSeconds:F0}s"
-                : $"{delta.TotalSeconds:F0}s";
+
+            // Use the stored delta (constant offset)
+            string deltaStr = FormatDelta(_fakeDelta);
             lblPreview.Text = $"Fake: {dt:yyyy-MM-dd HH:mm:ss} (local, offset {deltaStr})";
+        }
+
+        private static string FormatDelta(TimeSpan delta)
+        {
+            bool isNegative = delta.TotalSeconds < 0;
+            var absDelta = delta.Duration();
+
+            var parts = new List<string>();
+
+            // Days
+            if (absDelta.Days > 0)
+                parts.Add($"{absDelta.Days}d");
+
+            // Hours
+            if (absDelta.Hours > 0)
+                parts.Add($"{absDelta.Hours}h");
+
+            // Minutes
+            if (absDelta.Minutes > 0)
+                parts.Add($"{absDelta.Minutes}m");
+
+            // Seconds (always show if no other units, or if under a minute)
+            if (parts.Count == 0 || absDelta.Seconds > 0)
+                parts.Add($"{absDelta.Seconds}s");
+
+            var result = string.Join("", parts);
+            return isNegative ? $"-{result}" : $"+{result}";
         }
 
         // =====================================================================
@@ -660,6 +701,10 @@ namespace TimeMocker.UI.Forms
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // Stop preview update timer
+            _previewUpdateTimer?.Stop();
+            _previewUpdateTimer?.Dispose();
+
             // Save config
             _config.Patterns.Clear();
             foreach (DataGridViewRow row in dgvPatterns.Rows)
