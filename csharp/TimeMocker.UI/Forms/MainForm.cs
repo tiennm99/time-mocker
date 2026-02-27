@@ -25,7 +25,6 @@ namespace TimeMocker.UI.Forms
             "timemocker-config.json");
 
         public bool AutoInjectEnabled { get; set; } = true;
-        public bool AutoAdvanceEnabled { get; set; } = true;
         public List<PatternRuleDto> Patterns { get; set; } = new List<PatternRuleDto>();
 
         public void Save()
@@ -70,7 +69,6 @@ namespace TimeMocker.UI.Forms
         private CheckBox chkMockEnabled;
         private Button btnApply;
         private Label lblPreview;
-        private CheckBox chkAutoAdvance;
 
         // -- Patterns tab
         private DataGridView dgvPatterns;
@@ -82,11 +80,6 @@ namespace TimeMocker.UI.Forms
         // -- Log tab
         private RichTextBox rtbLog;
         private Button btnClearLog;
-
-        // Time advancing
-        private Timer _advanceTimer;
-        private DateTime _fakeTimeBase;
-        private DateTime _advanceStartReal;
 
         public MainForm()
         {
@@ -112,7 +105,6 @@ namespace TimeMocker.UI.Forms
 
             // Load config settings
             chkWatcherEnabled.Checked = _config.AutoInjectEnabled;
-            chkAutoAdvance.Checked = _config.AutoAdvanceEnabled;
             foreach (var pattern in _config.Patterns)
             {
                 _watcher.AddRule(new PatternRule
@@ -194,21 +186,10 @@ namespace TimeMocker.UI.Forms
                 ApplyTime();
             };
 
-            chkAutoAdvance = new CheckBox
-            {
-                Text = "Auto-advance time",
-                ForeColor = Color.FromArgb(220, 220, 220),
-                Width = 140,
-                Height = 30,
-                Margin = new Padding(8, 12, 4, 0),
-                Checked = true
-            };
-            chkAutoAdvance.CheckedChanged += ToggleAutoAdvance;
-
             lblPreview = new Label
             {
                 AutoSize = false,
-                Width = 260,
+                Width = 300,
                 Height = 20,
                 ForeColor = Color.FromArgb(180, 180, 180),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Italic),
@@ -217,8 +198,7 @@ namespace TimeMocker.UI.Forms
 
             timeFlow.Controls.AddRange(new Control[]
             {
-                chkMockEnabled, dtpDate, dtpTime, btnApply, btnSetNow,
-                chkAutoAdvance, lblPreview
+                chkMockEnabled, dtpDate, dtpTime, btnApply, btnSetNow, lblPreview
             });
             grpTime.Controls.Add(timeFlow);
 
@@ -247,10 +227,6 @@ namespace TimeMocker.UI.Forms
 
             Controls.Add(tabMain);
             Controls.Add(grpTime);
-
-            // advance timer
-            _advanceTimer = new Timer { Interval = 1000 };
-            _advanceTimer.Tick += AdvanceTick;
         }
 
         // =====================================================================
@@ -573,50 +549,26 @@ namespace TimeMocker.UI.Forms
             _watcher.FakeUtc = dt;
             _watcher.MockEnabled = chkMockEnabled.Checked;
 
-            if (chkAutoAdvance.Checked)
-            {
-                _fakeTimeBase = GetFakeTime();
-                _advanceStartReal = DateTime.Now;
-            }
-
             UpdateTimePreview();
         }
 
         private void UpdateTimePreview()
         {
             var dt = GetFakeTime();
-            lblPreview.Text = chkMockEnabled.Checked
-                ? $"Fake: {dt:yyyy-MM-dd HH:mm:ss} (local)"
-                : "Pass-through (real time)";
-        }
-
-        private void ToggleAutoAdvance(object sender, EventArgs e)
-        {
-            if (chkAutoAdvance.Checked)
+            if (chkMockEnabled.Checked)
             {
-                _fakeTimeBase = GetFakeTime();
-                _advanceStartReal = DateTime.Now;
-                _advanceTimer.Start();
+                // Calculate what the current offset is
+                var realNow = DateTime.Now;
+                var delta = dt - realNow;
+                var deltaStr = delta.TotalSeconds >= 0
+                    ? $"+{delta.TotalSeconds:F0}s"
+                    : $"{delta.TotalSeconds:F0}s";
+                lblPreview.Text = $"Fake: {dt:yyyy-MM-dd HH:mm:ss} (local, offset {deltaStr})";
             }
             else
             {
-                _advanceTimer.Stop();
+                lblPreview.Text = "Pass-through (real time)";
             }
-        }
-
-        private void AdvanceTick(object sender, EventArgs e)
-        {
-            if (!chkMockEnabled.Checked) return;
-            var elapsed = DateTime.Now - _advanceStartReal;
-            var advanced = _fakeTimeBase + elapsed;
-            // Silently update dtpDate/dtpTime without triggering ValueChanged loop
-            dtpDate.ValueChanged -= (s, ev) => UpdateTimePreview();
-            dtpTime.ValueChanged -= (s, ev) => UpdateTimePreview();
-            dtpDate.Value = advanced;
-            dtpTime.Value = advanced;
-            dtpDate.ValueChanged += (s, ev) => UpdateTimePreview();
-            dtpTime.ValueChanged += (s, ev) => UpdateTimePreview();
-            ApplyTime();
         }
 
         // =====================================================================
@@ -738,7 +690,6 @@ namespace TimeMocker.UI.Forms
         {
             // Save config
             _config.AutoInjectEnabled = chkWatcherEnabled.Checked;
-            _config.AutoAdvanceEnabled = chkAutoAdvance.Checked;
             _config.Patterns.Clear();
             foreach (DataGridViewRow row in dgvPatterns.Rows)
             {

@@ -14,7 +14,7 @@ namespace TimeMocker.Hook
     [StructLayout(LayoutKind.Sequential)]
     public struct MockTimeInfo
     {
-        public long FakeUtcTicks; // DateTime ticks (UTC)
+        public long DeltaTicks; // Offset to add to DateTime.UtcNow.Ticks (can be negative)
         public int Enabled; // 1 = mock active, 0 = passthrough
     }
 
@@ -108,9 +108,12 @@ namespace TimeMocker.Hook
         private DateTime GetFakeUtc()
         {
             var info = ReadMockInfo();
-            return info.Enabled == 1
-                ? new DateTime(info.FakeUtcTicks, DateTimeKind.Utc)
-                : DateTime.UtcNow;
+            if (info.Enabled == 1)
+            {
+                // Return real UTC time plus the stored delta offset
+                return new DateTime(DateTime.UtcNow.Ticks + info.DeltaTicks, DateTimeKind.Utc);
+            }
+            return DateTime.UtcNow;
         }
 
         private void InstallHooks()
