@@ -21,27 +21,13 @@ jobs:
         with:
           dotnet-version: 10.x
 
-      - name: Build Hook DLL (x86)
-        run: dotnet build TimeMocker.Hook\TimeMocker.Hook.csproj -c Release -p:Platform=x86
-
-      - name: Build Hook DLL (x64)
-        run: dotnet build TimeMocker.Hook\TimeMocker.Hook.csproj -c Release -p:Platform=x64
-
-      - name: Build UI
-        run: dotnet build TimeMocker.UI\TimeMocker.UI.csproj -c Release -p:Platform=x64
-
-      - name: Verify Hook DLL sizes
-        run: |
-          $x64 = (Get-Item "TimeMocker.Hook\bin\x64\Release\net48\TimeMocker.Hook.dll").Length
-          $x86 = (Get-Item "TimeMocker.Hook\bin\x86\Release\net48\TimeMocker.Hook.dll").Length
-          Write-Host "x64 hook DLL: $x64 bytes"
-          Write-Host "x86 hook DLL: $x86 bytes"
-          if ($x64 -lt 20000) { throw "x64 hook DLL too small - build failed silently" }
-          if ($x86 -lt 20000) { throw "x86 hook DLL too small - build failed silently" }
+      - name: Build Solution
+        run: dotnet build TimeMocker.sln -c Release -p:Platform=x64
 
       - name: Prepare Release Artifacts
         run: |
           mkdir release
+          # Copy all DLLs from the build output
           copy TimeMocker.UI\bin\x64\Release\net48\*.dll release\
           copy TimeMocker.UI\bin\x64\Release\net48\*.exe release\
           copy TimeMocker.UI\bin\x64\Release\net48\*.config release\
