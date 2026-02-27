@@ -24,7 +24,6 @@ namespace TimeMocker.UI.Forms
             "TimeMocker",
             "timemocker-config.json");
 
-        public bool AutoInjectEnabled { get; set; } = true;
         public List<PatternRuleDto> Patterns { get; set; } = new List<PatternRuleDto>();
 
         public void Save()
@@ -72,7 +71,6 @@ namespace TimeMocker.UI.Forms
         // -- Patterns tab
         private DataGridView dgvPatterns;
         private Button btnAddPattern, btnRemovePattern;
-        private CheckBox chkWatcherEnabled;
         private TextBox txtNewPattern;
         private RadioButton rdoGlob, rdoRegex;
 
@@ -103,7 +101,6 @@ namespace TimeMocker.UI.Forms
             BuildUI();
 
             // Load config settings
-            chkWatcherEnabled.Checked = _config.AutoInjectEnabled;
             foreach (var pattern in _config.Patterns)
             {
                 _watcher.AddRule(new PatternRule
@@ -118,6 +115,11 @@ namespace TimeMocker.UI.Forms
             RefreshProcessList();
             UpdateTimePreview();
             ApplyTime(); // Initialize with current time
+
+            // Start auto-inject watcher by default
+            _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
+            _watcher.Start();
+            AppendLog("Process watcher started.");
         }
 
         // =====================================================================
@@ -427,20 +429,10 @@ namespace TimeMocker.UI.Forms
             btnRemovePattern.Margin = new Padding(4, 8, 4, 0);
             btnRemovePattern.Click += OnRemovePattern;
 
-            chkWatcherEnabled = new CheckBox
-            {
-                Text = "Enable Auto-Inject Watcher",
-                ForeColor = Color.FromArgb(120, 190, 120),
-                AutoSize = true,
-                Margin = new Padding(16, 12, 4, 0),
-                Checked = true
-            };
-            chkWatcherEnabled.CheckedChanged += OnWatcherToggle;
-
             toolbar.Controls.AddRange(new Control[]
             {
                 lblNew, txtNewPattern, rdoGlob, rdoRegex,
-                btnAddPattern, btnRemovePattern, chkWatcherEnabled
+                btnAddPattern, btnRemovePattern
             });
 
             var lblSection = MakeSectionLabel("Auto-Inject Rules (process path or name must match)");
@@ -487,21 +479,6 @@ namespace TimeMocker.UI.Forms
                     UseRegex = row.Cells[1].Value?.ToString() == "Regex",
                     Enabled = (bool)(row.Cells[2].Value ?? true)
                 });
-        }
-
-        private void OnWatcherToggle(object sender, EventArgs e)
-        {
-            if (chkWatcherEnabled.Checked)
-            {
-                _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
-                _watcher.Start();
-                AppendLog("Process watcher started.");
-            }
-            else
-            {
-                _watcher.Stop();
-                AppendLog("Process watcher stopped.");
-            }
         }
 
         // =====================================================================
@@ -680,7 +657,6 @@ namespace TimeMocker.UI.Forms
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             // Save config
-            _config.AutoInjectEnabled = chkWatcherEnabled.Checked;
             _config.Patterns.Clear();
             foreach (DataGridViewRow row in dgvPatterns.Rows)
             {
