@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: windows-2025-vs2026
+    runs-on: windows-latest
 
     steps:
       - name: Checkout
@@ -27,10 +27,7 @@ jobs:
       - name: Prepare Release Artifacts
         run: |
           mkdir release
-          # Copy all DLLs from the build output
-          copy TimeMocker.UI\bin\x64\Release\net48\*.dll release\
-          copy TimeMocker.UI\bin\x64\Release\net48\*.exe release\
-          copy TimeMocker.UI\bin\x64\Release\net48\*.config release\
+          copy TimeMocker.UI\bin\x64\Release\net48\* release\
 
       - name: Zip Release
         run: Compress-Archive -Path release\* -DestinationPath TimeMocker-x64.zip
