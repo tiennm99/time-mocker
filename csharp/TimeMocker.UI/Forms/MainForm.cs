@@ -604,19 +604,19 @@ namespace TimeMocker.UI.Forms
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                BackgroundColor = Color.FromArgb(38, 44, 54),
-                ForeColor = Color.FromArgb(200, 200, 200),
-                GridColor = Color.FromArgb(75, 82, 94),
+                BackgroundColor = Color.FromArgb(52, 58, 68),
+                ForeColor = Color.FromArgb(175, 180, 185),
+                GridColor = Color.FromArgb(85, 92, 102),
                 BorderStyle = BorderStyle.None,
                 RowHeadersVisible = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
                 ColumnHeadersHeight = 28
             };
             g.EnableHeadersVisualStyles = false;
-            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(65, 72, 84);
-            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(150, 180, 220);
-            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(80, 130, 180);
-            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(45, 52, 64);
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(72, 78, 88);
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 185, 210);
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(98, 138, 178);
+            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(58, 64, 74);
             return g;
         }
 
