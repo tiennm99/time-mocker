@@ -95,17 +95,28 @@ namespace TimeMocker.UI.Core
             }
         }
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool IsWow64Process2(
+            IntPtr hProcess,
+            out ushort pProcessMachine,
+            out ushort pNativeMachine);
+
         private static bool Is64BitProcess(Process process)
         {
             if (!Environment.Is64BitOperatingSystem)
                 return false;
 
-            bool isWow64;
-            if (!IsWow64Process(process.Handle, out isWow64))
-                return false;
+            ushort processMachine, nativeMachine;
+            if (IsWow64Process2(process.Handle, out processMachine, out nativeMachine))
+            {
+                // IMAGE_FILE_MACHINE_UNKNOWN (0) means it's a native 64-bit process
+                // IMAGE_FILE_MACHINE_I386 (0x014c) means it's 32-bit on 64-bit Windows
+                return processMachine == 0x0000; // 0 = native, not emulated
+            }
 
-            // If IsWow64Process returns false, it's a 64-bit process
-            // If it returns true, it's a 32-bit process running on 64-bit Windows
+            // Fallback
+            bool isWow64;
+            IsWow64Process(process.Handle, out isWow64);
             return !isWow64;
         }
 
