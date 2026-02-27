@@ -43,8 +43,8 @@ namespace TimeMocker.UI.Core
 
             try
             {
-                // Write disabled state initially so hook passes through
-                entry.Shm.Write(new MockTimeInfo { Enabled = 0, DeltaTicks = 0 });
+                // Write initial delta (zero = real time) before hook starts reading
+                entry.Shm.Write(new MockTimeInfo { DeltaTicks = 0 });
 
                 RemoteHooking.Inject(
                     process.Id,
@@ -70,32 +70,20 @@ namespace TimeMocker.UI.Core
         // -----------------------------------------------------------------------
         // Update fake time for a process
         // -----------------------------------------------------------------------
-        public void SetFakeTime(int processId, DateTime fakeUtc, bool enabled)
+        public void SetFakeTime(int processId, DateTime fakeUtc)
         {
             if (!_injected.TryGetValue(processId, out var entry)) return;
 
-            long deltaTicks;
-            if (enabled)
-            {
-                // Calculate delta: (desired fake time) - (current real UTC time)
-                deltaTicks = fakeUtc.Ticks - DateTime.UtcNow.Ticks;
-            }
-            else
-            {
-                deltaTicks = 0;
-            }
+            // Calculate delta: (desired fake time) - (current real UTC time)
+            long deltaTicks = fakeUtc.Ticks - DateTime.UtcNow.Ticks;
 
-            entry.Shm.Write(new MockTimeInfo
-            {
-                DeltaTicks = deltaTicks,
-                Enabled = enabled ? 1 : 0
-            });
+            entry.Shm.Write(new MockTimeInfo { DeltaTicks = deltaTicks });
         }
 
-        public void SetFakeTimeAll(DateTime fakeUtc, bool enabled)
+        public void SetFakeTimeAll(DateTime fakeUtc)
         {
             foreach (var pid in _injected.Keys)
-                SetFakeTime(pid, fakeUtc, enabled);
+                SetFakeTime(pid, fakeUtc);
         }
 
         public bool IsInjected(int processId)
@@ -111,7 +99,6 @@ namespace TimeMocker.UI.Core
         public void Eject(int processId)
         {
             if (!_injected.TryGetValue(processId, out var entry)) return;
-            entry.Shm.Write(new MockTimeInfo { Enabled = 0, DeltaTicks = 0 }); // disable mock first
             entry.Shm.Dispose();
             _injected.Remove(processId);
             Log($"Ejected from [{processId}] {entry.ProcessName}");
