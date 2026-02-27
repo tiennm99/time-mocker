@@ -90,8 +90,8 @@ namespace TimeMocker.UI.Forms
             MinimumSize = new Size(750, 560);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Segoe UI", 9f);
-            BackColor = Color.FromArgb(30, 30, 35);
-            ForeColor = Color.FromArgb(220, 220, 220);
+            BackColor = Color.FromArgb(45, 52, 64);
+            ForeColor = Color.FromArgb(200, 200, 200);
 
             _injMgr = new InjectionManager();
             _watcher = new ProcessWatcher(_injMgr);
@@ -131,7 +131,7 @@ namespace TimeMocker.UI.Forms
                 Text = "Mock Time Settings",
                 Dock = DockStyle.Top,
                 Height = 110,
-                ForeColor = Color.FromArgb(130, 200, 255),
+                ForeColor = Color.FromArgb(100, 160, 220),
                 Padding = new Padding(8)
             };
 
@@ -146,7 +146,7 @@ namespace TimeMocker.UI.Forms
             chkMockEnabled = new CheckBox
             {
                 Text = "Enable Mock",
-                ForeColor = Color.LightGreen,
+                ForeColor = Color.FromArgb(120, 190, 120),
                 Width = 110,
                 Height = 30,
                 Margin = new Padding(4, 12, 4, 0)
@@ -174,11 +174,11 @@ namespace TimeMocker.UI.Forms
             };
             dtpTime.ValueChanged += (s, e) => UpdateTimePreview();
 
-            btnApply = MakeButton("Apply to All", 100, Color.FromArgb(0, 120, 215));
+            btnApply = MakeButton("Apply to All", 100, Color.FromArgb(70, 140, 200));
             btnApply.Margin = new Padding(8, 10, 4, 0);
             btnApply.Click += (s, e) => ApplyTime();
 
-            var btnSetNow = MakeButton("Set to Now", 90, Color.FromArgb(60, 60, 70));
+            var btnSetNow = MakeButton("Set to Now", 90, Color.FromArgb(100, 110, 120));
             btnSetNow.Margin = new Padding(4, 10, 4, 0);
             btnSetNow.Click += (s, e) =>
             {
@@ -191,7 +191,7 @@ namespace TimeMocker.UI.Forms
                 AutoSize = false,
                 Width = 300,
                 Height = 20,
-                ForeColor = Color.FromArgb(180, 180, 180),
+                ForeColor = Color.FromArgb(140, 150, 160),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Italic),
                 Margin = new Padding(4, 14, 0, 0)
             };
@@ -248,20 +248,20 @@ namespace TimeMocker.UI.Forms
             txtProcSearch = new TextBox { Width = 180, Margin = new Padding(0, 6, 8, 0) };
             txtProcSearch.TextChanged += (s, e) => FilterProcessList();
 
-            btnRefresh = MakeButton("⟳ Refresh", 90, Color.FromArgb(60, 60, 70));
+            btnRefresh = MakeButton("⟳ Refresh", 90, Color.FromArgb(100, 110, 120));
             btnRefresh.Margin = new Padding(0, 6, 4, 0);
             btnRefresh.Click += (s, e) => RefreshProcessList();
 
-            btnInject = MakeButton("Inject →", 90, Color.FromArgb(0, 150, 80));
+            btnInject = MakeButton("Inject →", 90, Color.FromArgb(80, 160, 100));
             btnInject.Margin = new Padding(0, 6, 4, 0);
             btnInject.Click += OnInjectClick;
 
-            btnEject = MakeButton("✕ Eject", 80, Color.FromArgb(180, 40, 40));
+            btnEject = MakeButton("✕ Eject", 80, Color.FromArgb(190, 90, 90));
             btnEject.Margin = new Padding(0, 6, 4, 0);
             btnEject.Click += OnEjectClick;
 
             toolbar.Controls.AddRange(new Control[] { lblProcSearch, txtProcSearch, btnRefresh, btnInject, btnEject });
-            toolbar.BackColor = Color.FromArgb(30, 30, 35);
+            toolbar.BackColor = Color.FromArgb(55, 62, 74);
 
             // Grid – split: available processes | injected processes
             var split = new SplitContainer
@@ -270,7 +270,7 @@ namespace TimeMocker.UI.Forms
                 Orientation = Orientation.Horizontal,
                 SplitterDistance = 300,
                 SplitterWidth = 5,
-                BackColor = Color.FromArgb(50, 50, 55)
+                BackColor = Color.FromArgb(65, 72, 84)
             };
 
             // Top: available
@@ -405,7 +405,7 @@ namespace TimeMocker.UI.Forms
                 Dock = DockStyle.Top,
                 Height = 80,
                 Padding = new Padding(4),
-                BackColor = Color.FromArgb(30, 30, 35)
+                BackColor = Color.FromArgb(55, 62, 74)
             };
 
             // Pattern input row
@@ -416,26 +416,26 @@ namespace TimeMocker.UI.Forms
             rdoGlob = new RadioButton
             {
                 Text = "Glob", Checked = true, AutoSize = true, Margin = new Padding(4, 12, 4, 0),
-                ForeColor = Color.FromArgb(220, 220, 220)
+                ForeColor = Color.FromArgb(200, 200, 200)
             };
             rdoRegex = new RadioButton
             {
                 Text = "Regex", AutoSize = true, Margin = new Padding(4, 12, 4, 0),
-                ForeColor = Color.FromArgb(220, 220, 220)
+                ForeColor = Color.FromArgb(200, 200, 200)
             };
 
-            btnAddPattern = MakeButton("+ Add Rule", 100, Color.FromArgb(0, 150, 80));
+            btnAddPattern = MakeButton("+ Add Rule", 100, Color.FromArgb(80, 160, 100));
             btnAddPattern.Margin = new Padding(8, 8, 4, 0);
             btnAddPattern.Click += OnAddPattern;
 
-            btnRemovePattern = MakeButton("✕ Remove", 90, Color.FromArgb(180, 40, 40));
+            btnRemovePattern = MakeButton("✕ Remove", 90, Color.FromArgb(190, 90, 90));
             btnRemovePattern.Margin = new Padding(4, 8, 4, 0);
             btnRemovePattern.Click += OnRemovePattern;
 
             chkWatcherEnabled = new CheckBox
             {
                 Text = "Enable Auto-Inject Watcher",
-                ForeColor = Color.LightGreen,
+                ForeColor = Color.FromArgb(120, 190, 120),
                 AutoSize = true,
                 Margin = new Padding(16, 12, 4, 0),
                 Checked = true
@@ -519,14 +519,14 @@ namespace TimeMocker.UI.Forms
             rtbLog = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(18, 18, 22),
-                ForeColor = Color.FromArgb(180, 240, 180),
+                BackColor = Color.FromArgb(30, 35, 42),
+                ForeColor = Color.FromArgb(170, 210, 150),
                 Font = new Font("Consolas", 9f),
                 ReadOnly = true,
                 ScrollBars = RichTextBoxScrollBars.Vertical
             };
 
-            btnClearLog = MakeButton("Clear", 70, Color.FromArgb(60, 60, 70));
+            btnClearLog = MakeButton("Clear", 70, Color.FromArgb(100, 110, 120));
             btnClearLog.Dock = DockStyle.Bottom;
             btnClearLog.Click += (s, e) => rtbLog.Clear();
 
@@ -604,19 +604,19 @@ namespace TimeMocker.UI.Forms
                 AllowUserToDeleteRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
-                BackgroundColor = Color.FromArgb(25, 25, 30),
-                ForeColor = Color.FromArgb(220, 220, 220),
-                GridColor = Color.FromArgb(50, 50, 55),
+                BackgroundColor = Color.FromArgb(38, 44, 54),
+                ForeColor = Color.FromArgb(200, 200, 200),
+                GridColor = Color.FromArgb(75, 82, 94),
                 BorderStyle = BorderStyle.None,
                 RowHeadersVisible = false,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
                 ColumnHeadersHeight = 28
             };
             g.EnableHeadersVisualStyles = false;
-            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(40, 40, 48);
-            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(160, 200, 255);
-            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(0, 90, 160);
-            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(30, 30, 38);
+            g.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(65, 72, 84);
+            g.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(150, 180, 220);
+            g.DefaultCellStyle.SelectionBackColor = Color.FromArgb(80, 130, 180);
+            g.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(45, 52, 64);
             return g;
         }
 
@@ -652,17 +652,17 @@ namespace TimeMocker.UI.Forms
                 Text = text,
                 Dock = DockStyle.Top,
                 Height = 22,
-                ForeColor = Color.FromArgb(130, 200, 255),
+                ForeColor = Color.FromArgb(150, 180, 220),
                 Font = new Font("Segoe UI", 8.5f, FontStyle.Bold),
                 Padding = new Padding(4, 2, 0, 0),
-                BackColor = Color.FromArgb(35, 35, 42)
+                BackColor = Color.FromArgb(50, 57, 69)
             };
         }
 
         private static void StyleTab(TabPage tab)
         {
-            tab.BackColor = Color.FromArgb(30, 30, 35);
-            tab.ForeColor = Color.FromArgb(220, 220, 220);
+            tab.BackColor = Color.FromArgb(45, 52, 64);
+            tab.ForeColor = Color.FromArgb(200, 200, 200);
         }
 
         private void DrawTab(object sender, DrawItemEventArgs e)
@@ -672,12 +672,12 @@ namespace TimeMocker.UI.Forms
             var rect = e.Bounds;
             var selected = e.Index == tab.SelectedIndex;
 
-            using var bg = new SolidBrush(selected ? Color.FromArgb(0, 90, 160) : Color.FromArgb(40, 40, 48));
+            using var bg = new SolidBrush(selected ? Color.FromArgb(80, 130, 180) : Color.FromArgb(60, 68, 80));
             e.Graphics.FillRectangle(bg, rect);
 
             var sf = new StringFormat
                 { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            using var fg = new SolidBrush(selected ? Color.White : Color.FromArgb(180, 180, 180));
+            using var fg = new SolidBrush(selected ? Color.White : Color.FromArgb(170, 180, 190));
             e.Graphics.DrawString(page.Text, Font, fg, rect, sf);
         }
 
