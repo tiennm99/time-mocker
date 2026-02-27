@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Timers;
 using System.Windows.Forms;
 using TimeMocker.UI.Core;
 
@@ -58,9 +59,9 @@ namespace TimeMocker.UI.Forms
 
         // -- Process tab
         private DataGridView dgvProcesses;
-        private Button btnRefresh;
         private TextBox txtProcSearch;
         private Label lblProcSearch;
+        private System.Timers.Timer _refreshTimer;
 
         // -- Time panel (shared)
         private GroupBox grpTime;
@@ -118,6 +119,11 @@ namespace TimeMocker.UI.Forms
             RefreshProcessList();
             UpdateTimePreview();
             ApplyTime(); // Initialize with current time
+
+            // Start auto-refresh timer (1 second interval)
+            _refreshTimer = new System.Timers.Timer(1000);
+            _refreshTimer.Elapsed += (s, e) => BeginInvoke((Action)(RefreshProcessList));
+            _refreshTimer.Start();
         }
 
         // =====================================================================
@@ -237,11 +243,7 @@ namespace TimeMocker.UI.Forms
             txtProcSearch = new TextBox { Width = 180, Margin = new Padding(0, 6, 8, 0) };
             txtProcSearch.TextChanged += (s, e) => FilterProcessList();
 
-            btnRefresh = MakeButton("⟳ Refresh", 90, Color.FromArgb(100, 110, 120));
-            btnRefresh.Margin = new Padding(0, 6, 4, 0);
-            btnRefresh.Click += (s, e) => RefreshProcessList();
-
-            toolbar.Controls.AddRange(new Control[] { lblProcSearch, txtProcSearch, btnRefresh });
+            toolbar.Controls.AddRange(new Control[] { lblProcSearch, txtProcSearch });
             toolbar.BackColor = Color.FromArgb(55, 62, 74);
 
             // Single process list with Inject checkbox
@@ -335,6 +337,21 @@ namespace TimeMocker.UI.Forms
         private void RefreshProcessList()
         {
             _allRows.Clear();
+
+            // Get current live process IDs
+            var livePids = new HashSet<int>(Process.GetProcesses().Select(p => p.Id));
+
+            // Remove dead processes from injection manager
+            var deadPids = _injMgr.InjectedProcesses
+                .Select(x => x.ProcessId)
+                .Where(pid => !livePids.Contains(pid))
+                .ToList();
+
+            foreach (var deadPid in deadPids)
+            {
+                _injMgr.Eject(deadPid);
+            }
+
             var injectedPids = new HashSet<int>(_injMgr.InjectedProcesses.Select(x => x.ProcessId));
 
             foreach (var p in Process.GetProcesses().OrderBy(x => x.ProcessName))
@@ -664,6 +681,10 @@ namespace TimeMocker.UI.Forms
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // Stop auto-refresh timer
+            _refreshTimer?.Stop();
+            _refreshTimer?.Dispose();
+
             // Save config
             _config.AutoInjectEnabled = chkWatcherEnabled.Checked;
             _config.Patterns.Clear();
