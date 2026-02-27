@@ -122,7 +122,7 @@ namespace TimeMocker.UI.Core
                             try
                             {
                                 var entry = _injectionMgr.Inject(p);
-                                _injectionMgr.SetFakeTime(p.Id, FakeUtc, MockEnabled);
+                                _injectionMgr.SetFakeTime(p.Id, FakeUtc);
                                 Log($"[AutoInject] Matched rule '{rule.Pattern}' → [{p.Id}] {p.ProcessName}");
                                 ProcessAutoInjected?.Invoke(entry);
                             }

@@ -359,7 +359,7 @@ namespace TimeMocker.UI.Forms
                 var p = Process.GetProcessById(selected.Value);
                 _injMgr.Inject(p);
                 var dt = GetFakeTime();
-                _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime(), enabled: true);
+                _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime());
                 RefreshInjectedTab();
                 AppendLog($"Manually injected into [{p.Id}] {p.ProcessName}");
             }
@@ -535,7 +535,7 @@ namespace TimeMocker.UI.Forms
         private void ApplyTime()
         {
             var dt = GetFakeTime().ToUniversalTime();
-            _injMgr.SetFakeTimeAll(dt, enabled: true);
+            _injMgr.SetFakeTimeAll(dt);
             _watcher.FakeUtc = dt;
             _watcher.MockEnabled = true;
 

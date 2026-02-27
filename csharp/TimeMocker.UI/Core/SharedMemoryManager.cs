@@ -47,6 +47,5 @@ namespace TimeMocker.UI.Core
     public struct MockTimeInfo
     {
         public long DeltaTicks; // Offset to add to DateTime.UtcNow.Ticks (can be negative)
-        public int Enabled; // 1 = mock active, 0 = passthrough
     }
 }
