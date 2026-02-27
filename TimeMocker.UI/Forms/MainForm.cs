@@ -169,7 +169,6 @@ namespace TimeMocker.UI.Forms
             btnSetNow.Click += (s, e) =>
             {
                 dtpDate.Value = dtpTime.Value = DateTime.Now;
-                ApplyTime();
             };
 
             btnApply = MakeButton("Set", 70, Color.FromArgb(70, 140, 200));
@@ -490,7 +489,6 @@ namespace TimeMocker.UI.Forms
             if (chkWatcherEnabled.Checked)
             {
                 _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
-                _watcher.MockEnabled = true;
                 _watcher.Start();
                 AppendLog("Process watcher started.");
             }
@@ -537,7 +535,6 @@ namespace TimeMocker.UI.Forms
             var dt = GetFakeTime().ToUniversalTime();
             _injMgr.SetFakeTimeAll(dt);
             _watcher.FakeUtc = dt;
-            _watcher.MockEnabled = true;
 
             UpdateTimePreview();
         }

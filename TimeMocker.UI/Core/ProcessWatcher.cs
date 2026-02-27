@@ -42,12 +42,9 @@ namespace TimeMocker.UI.Core
 
         // Current fake time settings to apply on auto-inject
         public DateTime FakeUtc { get; set; } = DateTime.UtcNow;
-        public bool MockEnabled { get; set; } = false;
 
         public event Action<string> LogMessage;
         public event Action<InjectedProcess> ProcessAutoInjected;
-
-        public IReadOnlyList<PatternRule> Rules => _rules;
 
         public ProcessWatcher(InjectionManager mgr)
         {
