@@ -66,7 +66,6 @@ namespace TimeMocker.UI.Forms
         private GroupBox grpTime;
         private DateTimePicker dtpDate;
         private DateTimePicker dtpTime;
-        private CheckBox chkMockEnabled;
         private Button btnApply;
         private Label lblPreview;
 
@@ -118,6 +117,7 @@ namespace TimeMocker.UI.Forms
 
             RefreshProcessList();
             UpdateTimePreview();
+            ApplyTime(); // Initialize with current time
         }
 
         // =====================================================================
@@ -142,16 +142,6 @@ namespace TimeMocker.UI.Forms
                 WrapContents = false,
                 AutoSize = false
             };
-
-            chkMockEnabled = new CheckBox
-            {
-                Text = "Enable Mock",
-                ForeColor = Color.FromArgb(120, 190, 120),
-                Width = 110,
-                Height = 30,
-                Margin = new Padding(4, 12, 4, 0)
-            };
-            chkMockEnabled.CheckedChanged += (s, e) => ApplyTime();
 
             dtpDate = new DateTimePicker
             {
@@ -198,7 +188,7 @@ namespace TimeMocker.UI.Forms
 
             timeFlow.Controls.AddRange(new Control[]
             {
-                chkMockEnabled, dtpDate, dtpTime, btnApply, btnSetNow, lblPreview
+                dtpDate, dtpTime, btnApply, btnSetNow, lblPreview
             });
             grpTime.Controls.Add(timeFlow);
 
@@ -369,7 +359,7 @@ namespace TimeMocker.UI.Forms
                 var p = Process.GetProcessById(selected.Value);
                 _injMgr.Inject(p);
                 var dt = GetFakeTime();
-                _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime(), chkMockEnabled.Checked);
+                _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime(), enabled: true);
                 RefreshInjectedTab();
                 AppendLog($"Manually injected into [{p.Id}] {p.ProcessName}");
             }
@@ -500,7 +490,7 @@ namespace TimeMocker.UI.Forms
             if (chkWatcherEnabled.Checked)
             {
                 _watcher.FakeUtc = GetFakeTime().ToUniversalTime();
-                _watcher.MockEnabled = chkMockEnabled.Checked;
+                _watcher.MockEnabled = true;
                 _watcher.Start();
                 AppendLog("Process watcher started.");
             }
@@ -545,9 +535,9 @@ namespace TimeMocker.UI.Forms
         private void ApplyTime()
         {
             var dt = GetFakeTime().ToUniversalTime();
-            _injMgr.SetFakeTimeAll(dt, chkMockEnabled.Checked);
+            _injMgr.SetFakeTimeAll(dt, enabled: true);
             _watcher.FakeUtc = dt;
-            _watcher.MockEnabled = chkMockEnabled.Checked;
+            _watcher.MockEnabled = true;
 
             UpdateTimePreview();
         }
@@ -555,20 +545,13 @@ namespace TimeMocker.UI.Forms
         private void UpdateTimePreview()
         {
             var dt = GetFakeTime();
-            if (chkMockEnabled.Checked)
-            {
-                // Calculate what the current offset is
-                var realNow = DateTime.Now;
-                var delta = dt - realNow;
-                var deltaStr = delta.TotalSeconds >= 0
-                    ? $"+{delta.TotalSeconds:F0}s"
-                    : $"{delta.TotalSeconds:F0}s";
-                lblPreview.Text = $"Fake: {dt:yyyy-MM-dd HH:mm:ss} (local, offset {deltaStr})";
-            }
-            else
-            {
-                lblPreview.Text = "Pass-through (real time)";
-            }
+            // Calculate what the current offset is
+            var realNow = DateTime.Now;
+            var delta = dt - realNow;
+            var deltaStr = delta.TotalSeconds >= 0
+                ? $"+{delta.TotalSeconds:F0}s"
+                : $"{delta.TotalSeconds:F0}s";
+            lblPreview.Text = $"Fake: {dt:yyyy-MM-dd HH:mm:ss} (local, offset {deltaStr})";
         }
 
         // =====================================================================
