@@ -58,7 +58,7 @@ namespace TimeMocker.UI.Forms
 
         // -- Process tab
         private DataGridView dgvProcesses;
-        private Button btnRefresh, btnInject, btnEject;
+        private Button btnRefresh, btnEject;
         private TextBox txtProcSearch;
         private Label lblProcSearch;
 
@@ -98,7 +98,7 @@ namespace TimeMocker.UI.Forms
             _injMgr.LogMessage += AppendLog;
             _watcher.LogMessage += AppendLog;
             _watcher.ProcessAutoInjected += entry =>
-                BeginInvoke((Action)(() => RefreshInjectedTab()));
+                BeginInvoke((Action)(() => RefreshProcessList()));
 
             BuildUI();
 
@@ -241,72 +241,106 @@ namespace TimeMocker.UI.Forms
             btnRefresh.Margin = new Padding(0, 6, 4, 0);
             btnRefresh.Click += (s, e) => RefreshProcessList();
 
-            btnInject = MakeButton("Inject →", 90, Color.FromArgb(80, 160, 100));
-            btnInject.Margin = new Padding(0, 6, 4, 0);
-            btnInject.Click += OnInjectClick;
-
-            btnEject = MakeButton("✕ Eject", 80, Color.FromArgb(190, 90, 90));
+            btnEject = MakeButton("✕ Eject Selected", 110, Color.FromArgb(190, 90, 90));
             btnEject.Margin = new Padding(0, 6, 4, 0);
             btnEject.Click += OnEjectClick;
 
-            toolbar.Controls.AddRange(new Control[] { lblProcSearch, txtProcSearch, btnRefresh, btnInject, btnEject });
+            toolbar.Controls.AddRange(new Control[] { lblProcSearch, txtProcSearch, btnRefresh, btnEject });
             toolbar.BackColor = Color.FromArgb(55, 62, 74);
 
-            // Grid – split: available processes | injected processes
-            var split = new SplitContainer
+            // Single process list with Inject checkbox
+            var lblSection = MakeSectionLabel("Processes");
+            dgvProcesses = MakeGrid();
+            dgvProcesses.ReadOnly = false;
+            dgvProcesses.MultiSelect = true;
+            dgvProcesses.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None;
+            dgvProcesses.Columns.AddRange(
+                Col("PID", 50), Col("Name", 160), Col("Path", 380), BoolCol("Injected", 70));
+
+            // Make all columns read-only except the checkbox
+            foreach (DataGridViewColumn col in dgvProcesses.Columns)
             {
-                Dock = DockStyle.Fill,
-                Orientation = Orientation.Horizontal,
-                SplitterDistance = 300,
-                SplitterWidth = 5,
-                BackColor = Color.FromArgb(65, 72, 84)
+                if (col.Name != "Injected")
+                    col.ReadOnly = true;
+            }
+
+            dgvProcesses.CellValueChanged += dgvProcesses_CellValueChanged;
+            dgvProcesses.CurrentCellDirtyStateChanged += (s, e) =>
+            {
+                if (dgvProcesses.IsCurrentCellDirty)
+                {
+                    dgvProcesses.CommitEdit(DataGridViewDataErrorContexts.Commit);
+                }
             };
 
-            // Top: available
-            var lblAvail = MakeSectionLabel("Running Processes");
-            dgvProcesses = MakeGrid();
-            dgvProcesses.Columns.AddRange(
-                Col("PID", 50), Col("Name", 160), Col("Path", 380));
-
-            var topPanel = new Panel { Dock = DockStyle.Fill };
-            topPanel.Controls.Add(dgvProcesses);
-            topPanel.Controls.Add(lblAvail);
-
-            // Bottom: injected
-            var lblInj = MakeSectionLabel("Injected Processes");
-            var dgvInjected = MakeGrid();
-            dgvInjected.Tag = "injected";
-            dgvInjected.Columns.AddRange(
-                Col("PID", 50), Col("Name", 160), Col("Path", 380), Col("Status", 80));
-
-            var botPanel = new Panel { Dock = DockStyle.Fill };
-            botPanel.Controls.Add(dgvInjected);
-            botPanel.Controls.Add(lblInj);
-
-            split.Panel1.Controls.Add(topPanel);
-            split.Panel2.Controls.Add(botPanel);
-
-            panel.Controls.Add(split);
+            panel.Controls.Add(lblSection);
+            panel.Controls.Add(dgvProcesses);
             panel.Controls.Add(toolbar);
-
-            // store for refresh
-            _dgvInjected = dgvInjected;
 
             tabProcesses.Controls.Add(panel);
         }
 
-        private DataGridView _dgvInjected;
         private List<ProcessRow> _allRows = new List<ProcessRow>();
 
         private class ProcessRow
         {
             public int Id;
             public string Name, Path;
+            public bool Injected;
+        }
+
+        private void dgvProcesses_CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+            if (dgvProcesses.Columns[e.ColumnIndex].Name != "Injected") return;
+
+            var pidCell = dgvProcesses.Rows[e.RowIndex].Cells[0];
+            if (pidCell.Value == null) return;
+
+            var pid = (int)pidCell.Value;
+            var shouldInject = (bool)dgvProcesses.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+
+            if (shouldInject)
+            {
+                // Inject the process
+                if (!_injMgr.IsInjected(pid))
+                {
+                    try
+                    {
+                        var p = Process.GetProcessById(pid);
+                        _injMgr.Inject(p);
+                        var dt = GetFakeTime();
+                        _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime());
+                        AppendLog($"Injected into [{pid}] {p.ProcessName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Injection failed:\n{ex.Message}", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        // Revert checkbox on failure
+                        dgvProcesses.BeginInvoke((Action)(() =>
+                        {
+                            dgvProcesses.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = false;
+                        }));
+                    }
+                }
+            }
+            else
+            {
+                // Eject the process
+                if (_injMgr.IsInjected(pid))
+                {
+                    _injMgr.Eject(pid);
+                    AppendLog($"Ejected from [{pid}]");
+                }
+            }
         }
 
         private void RefreshProcessList()
         {
             _allRows.Clear();
+            var injectedPids = new HashSet<int>(_injMgr.InjectedProcesses.Select(x => x.ProcessId));
+
             foreach (var p in Process.GetProcesses().OrderBy(x => x.ProcessName))
             {
                 var path = "";
@@ -318,68 +352,51 @@ namespace TimeMocker.UI.Forms
                 {
                 }
 
-                _allRows.Add(new ProcessRow { Id = p.Id, Name = p.ProcessName, Path = path });
+                _allRows.Add(new ProcessRow
+                {
+                    Id = p.Id,
+                    Name = p.ProcessName,
+                    Path = path,
+                    Injected = injectedPids.Contains(p.Id)
+                });
             }
 
             FilterProcessList();
-            RefreshInjectedTab();
         }
 
         private void FilterProcessList()
         {
             var q = txtProcSearch.Text.Trim().ToLower();
+            dgvProcesses.SuspendLayout();
             dgvProcesses.Rows.Clear();
             foreach (var r in _allRows)
             {
                 if (q.Length > 0 && !r.Name.ToLower().Contains(q) && !r.Path.ToLower().Contains(q)) continue;
-                dgvProcesses.Rows.Add(r.Id, r.Name, r.Path);
+                dgvProcesses.Rows.Add(r.Id, r.Name, r.Path, r.Injected);
             }
-        }
-
-        private void RefreshInjectedTab()
-        {
-            if (_dgvInjected == null) return;
-            _dgvInjected.Rows.Clear();
-            foreach (var e in _injMgr.InjectedProcesses)
-                _dgvInjected.Rows.Add(e.ProcessId, e.ProcessName, e.ProcessPath, e.IsInjected ? "Active" : "Pending");
+            dgvProcesses.ResumeLayout();
         }
 
         private void OnInjectClick(object sender, EventArgs e)
         {
-            var selected = GetSelectedProcessId(dgvProcesses);
-            if (selected == null)
-            {
-                ShowInfo("Select a process first.");
-                return;
-            }
-
-            try
-            {
-                var p = Process.GetProcessById(selected.Value);
-                _injMgr.Inject(p);
-                var dt = GetFakeTime();
-                _injMgr.SetFakeTime(p.Id, dt.ToUniversalTime());
-                RefreshInjectedTab();
-                AppendLog($"Manually injected into [{p.Id}] {p.ProcessName}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Injection failed:\n{ex.Message}", "Error",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            // No longer needed - injection is handled by checkbox
         }
 
         private void OnEjectClick(object sender, EventArgs e)
         {
-            var selected = GetSelectedProcessId(_dgvInjected);
-            if (selected == null)
+            foreach (DataGridViewRow row in dgvProcesses.SelectedRows)
             {
-                ShowInfo("Select an injected process first.");
-                return;
-            }
+                if (row.Cells[0].Value == null) continue;
+                var pid = (int)row.Cells[0].Value;
 
-            _injMgr.Eject(selected.Value);
-            RefreshInjectedTab();
+                if (_injMgr.IsInjected(pid))
+                {
+                    _injMgr.Eject(pid);
+                    // Uncheck the Injected checkbox
+                    row.Cells["Injected"].Value = false;
+                    AppendLog($"Ejected from [{pid}]");
+                }
+            }
         }
 
         // =====================================================================
@@ -440,7 +457,6 @@ namespace TimeMocker.UI.Forms
             var lblSection = MakeSectionLabel("Auto-Inject Rules (process path or name must match)");
 
             dgvPatterns = MakeGrid();
-            dgvPatterns.Dock = DockStyle.Fill;
             dgvPatterns.Columns.AddRange(
                 Col("Pattern", 320), Col("Type", 60), BoolCol("Enabled"));
 
@@ -589,7 +605,8 @@ namespace TimeMocker.UI.Forms
                 GridColor = Color.FromArgb(85, 92, 102),
                 BorderStyle = BorderStyle.None,
                 RowHeadersVisible = false,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
                 ColumnHeadersHeight = 28
             };
             g.EnableHeadersVisualStyles = false;
@@ -603,12 +620,24 @@ namespace TimeMocker.UI.Forms
         private static DataGridViewTextBoxColumn Col(string name, int w)
         {
             return new DataGridViewTextBoxColumn
-                { HeaderText = name, Width = w, SortMode = DataGridViewColumnSortMode.NotSortable };
+            {
+                Name = name,
+                HeaderText = name,
+                Width = w,
+                MinimumWidth = w,
+                SortMode = DataGridViewColumnSortMode.NotSortable
+            };
         }
 
-        private static DataGridViewCheckBoxColumn BoolCol(string name)
+        private static DataGridViewCheckBoxColumn BoolCol(string name, int width = 65)
         {
-            return new DataGridViewCheckBoxColumn { HeaderText = name, Width = 65 };
+            return new DataGridViewCheckBoxColumn
+            {
+                Name = name,
+                HeaderText = name,
+                Width = width,
+                MinimumWidth = width
+            };
         }
 
         private static Button MakeButton(string text, int w, Color bg)
