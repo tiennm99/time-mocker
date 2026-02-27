@@ -164,17 +164,17 @@ namespace TimeMocker.UI.Forms
             };
             dtpTime.ValueChanged += (s, e) => UpdateTimePreview();
 
-            btnApply = MakeButton("Apply to All", 100, Color.FromArgb(70, 140, 200));
-            btnApply.Margin = new Padding(8, 10, 4, 0);
-            btnApply.Click += (s, e) => ApplyTime();
-
-            var btnSetNow = MakeButton("Set to Now", 90, Color.FromArgb(100, 110, 120));
+            var btnSetNow = MakeButton("Now", 70, Color.FromArgb(100, 110, 120));
             btnSetNow.Margin = new Padding(4, 10, 4, 0);
             btnSetNow.Click += (s, e) =>
             {
                 dtpDate.Value = dtpTime.Value = DateTime.Now;
                 ApplyTime();
             };
+
+            btnApply = MakeButton("Set", 70, Color.FromArgb(70, 140, 200));
+            btnApply.Margin = new Padding(4, 10, 4, 0);
+            btnApply.Click += (s, e) => ApplyTime();
 
             lblPreview = new Label
             {
@@ -188,7 +188,7 @@ namespace TimeMocker.UI.Forms
 
             timeFlow.Controls.AddRange(new Control[]
             {
-                dtpDate, dtpTime, btnApply, btnSetNow, lblPreview
+                dtpDate, dtpTime, btnSetNow, btnApply, lblPreview
             });
             grpTime.Controls.Add(timeFlow);
 
