@@ -75,7 +75,7 @@ namespace TimeMocker.UI.Core
             }
         }
 
-        public void Start(int pollIntervalMs = 1500)
+        public void Start(int pollIntervalMs = 5000)
         {
             if (_running) return;
             _running = true;
