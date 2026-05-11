@@ -113,3 +113,8 @@ The hook reads this on every time API call and returns `DateTime.UtcNow + DeltaT
 ## License
 
 MIT
+
+## Related
+
+- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours port of this tool with identical IPC design.
+
