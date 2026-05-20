@@ -25,13 +25,12 @@ sysinfo = "0.32"
 globset = "0.4"
 regex = "1.11"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 anyhow = "1.0"
-thiserror = "2.0"
 windows-sys = { workspace = true, features = [
     "Win32_Foundation",
     "Win32_System_Memory",
+    "Win32_System_SystemInformation",
     "Win32_System_Threading",
     "Win32_Security",
     "Win32_UI_Shell",
@@ -39,3 +38,6 @@ windows-sys = { workspace = true, features = [
 
 [build-dependencies]
 embed-manifest = "1.4"
+
+[dev-dependencies]
+tempfile = "3.8"

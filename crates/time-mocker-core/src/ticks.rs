@@ -41,3 +41,51 @@ pub fn systemtime_to_ticks(st: &SYSTEMTIME) -> Option<i64> {
         Some(filetime_to_i64(ft))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filetime_i64_roundtrip() {
+        // Covers: zero, small, Unix epoch (1970 in FILETIME ticks), a recent time,
+        // and the i64 boundary (used as a saturating-add sentinel by the hooks).
+        let cases = [
+            0_i64,
+            1,
+            100,
+            116_444_736_000_000_000, // 1970-01-01 UTC in FILETIME ticks
+            132_000_000_000_000_000, // ~2019
+            i64::MAX,
+            i64::MIN,
+            -1,
+        ];
+        for &t in &cases {
+            let ft = i64_to_filetime(t);
+            assert_eq!(filetime_to_i64(ft), t, "round-trip failed for {t}");
+        }
+    }
+
+    #[test]
+    fn systemtime_roundtrip_utc() {
+        // 2020-06-15 12:34:56 UTC
+        let st = SYSTEMTIME {
+            wYear: 2020,
+            wMonth: 6,
+            wDayOfWeek: 0,
+            wDay: 15,
+            wHour: 12,
+            wMinute: 34,
+            wSecond: 56,
+            wMilliseconds: 0,
+        };
+        let ticks = systemtime_to_ticks(&st).expect("systemtime_to_ticks");
+        let back = ticks_to_systemtime(ticks).expect("ticks_to_systemtime");
+        assert_eq!(back.wYear, st.wYear);
+        assert_eq!(back.wMonth, st.wMonth);
+        assert_eq!(back.wDay, st.wDay);
+        assert_eq!(back.wHour, st.wHour);
+        assert_eq!(back.wMinute, st.wMinute);
+        assert_eq!(back.wSecond, st.wSecond);
+    }
+}

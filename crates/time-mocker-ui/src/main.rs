@@ -12,6 +12,7 @@ mod app;
 mod injection_manager;
 mod process_watcher;
 mod rules;
+mod win32_process_info;
 
 use anyhow::Result;
 
