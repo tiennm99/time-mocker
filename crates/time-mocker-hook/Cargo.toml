@@ -1,0 +1,27 @@
+[package]
+name = "time-mocker-hook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Injected DLL that hooks Win32 time APIs"
+
+[lib]
+name = "time_mocker_hook"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+time-mocker-core = { path = "../time-mocker-core" }
+retour = { version = "0.4.0-alpha.4", features = ["static-detour"] }
+once_cell = "1.20"
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
+    "Win32_System_SystemServices",
+    "Win32_System_Time",
+] }

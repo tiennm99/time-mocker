@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/time-mocker-core",
+    "crates/time-mocker-hook",
+    "crates/time-mocker-ui",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["tiennm99"]
+repository = "https://github.com/tiennm99/time-mocker-rs"
+rust-version = "1.90"
+
+[workspace.dependencies]
+windows = { version = "0.58", default-features = false }
+windows-sys = "0.59"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+opt-level = 3
+panic = "abort"
+
+[profile.dev]
+opt-level = 1

@@ -1,0 +1,23 @@
+[package]
+name = "time-mocker-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Shared types and named MMF helper for time-mocker"
+
+[lib]
+name = "time_mocker_core"
+path = "src/lib.rs"
+
+[dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_Memory",
+    "Win32_System_Time",
+    "Win32_Security",
+] }
+
+[target.'cfg(windows)'.dependencies]
