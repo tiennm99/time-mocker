@@ -1,0 +1,88 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag name (e.g. v0.1.0) — required when running manually"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build-windows-x64
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (pinned by rust-toolchain.toml)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo test --workspace
+        run: cargo test --workspace --release
+
+      - name: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo build --workspace --release
+        run: cargo build --workspace --release
+
+      - name: Resolve tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stage release artifacts
+        shell: bash
+        run: |
+          mkdir -p release-staging
+          cp target/release/time_mocker_ui.exe release-staging/
+          cp target/release/time_mocker_hook.dll release-staging/
+          cp LICENSE release-staging/
+          cp README.md release-staging/
+
+      - name: Pack zip
+        id: pack
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.tag.outputs.tag }}"
+          $zip = "time-mocker-$tag-windows-x64.zip"
+          Compress-Archive -Path release-staging\* -DestinationPath $zip -Force
+          (Get-FileHash $zip -Algorithm SHA256).Hash | Out-File "$zip.sha256" -Encoding ascii
+          "zip=$zip"        >> $env:GITHUB_OUTPUT
+          "sha=$zip.sha256" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifacts (workflow run)
+        uses: actions/upload-artifact@v4
+        with:
+          name: time-mocker-windows-x64
+          path: |
+            ${{ steps.pack.outputs.zip }}
+            ${{ steps.pack.outputs.sha }}
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: time-mocker ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.pack.outputs.zip }}
+            ${{ steps.pack.outputs.sha }}
