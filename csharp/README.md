@@ -116,5 +116,6 @@ MIT
 
 ## Related
 
-- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours port of this tool with identical IPC design.
+- [time-mocker](https://github.com/tiennm99/time-mocker) — canonical Rust implementation.
+- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours implementation.
 
