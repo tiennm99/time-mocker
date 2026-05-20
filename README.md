@@ -1,8 +1,8 @@
-# TimeMocker (Rust)
+# TimeMocker
 
-A Windows tool that injects fake time into running processes by hooking Win32 time APIs. Rust port of [time-mocker](https://github.com/tiennm99/time-mocker) (C# / EasyHook).
+A Windows tool that injects fake time into running processes by hooking Win32 time APIs. Written in Rust.
 
-> **Status:** Active development. This Rust implementation is intended to become the canonical `time-mocker` once feature-complete; the C# project will be renamed to indicate its dotnet origin.
+> **Status:** Active development. This is the canonical implementation. Language-specific ports are available in [C# (EasyHook)](https://github.com/tiennm99/time-mocker-csharp) and [C++ (MS Detours)](https://github.com/tiennm99/time-mocker-cpp).
 
 ## Architecture
 
@@ -62,5 +62,5 @@ MIT — see [LICENSE](LICENSE).
 
 ## Related
 
-- [time-mocker](https://github.com/tiennm99/time-mocker) — original C# / EasyHook implementation
-- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours port
+- [time-mocker-csharp](https://github.com/tiennm99/time-mocker-csharp) — C# / EasyHook implementation
+- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours implementation
