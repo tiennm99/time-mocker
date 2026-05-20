@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/time-mocker-core",
     "crates/time-mocker-hook",
+    "crates/time-mocker-test-target",
     "crates/time-mocker-ui",
 ]
 

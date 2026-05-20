@@ -1,0 +1,22 @@
+[package]
+name = "time-mocker-test-target"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Dedicated injection target — prints all 5 hooked time APIs in a loop so you can verify the hook DLL without touching arbitrary running processes"
+
+[[bin]]
+name = "time_mocker_test_target"
+path = "src/main.rs"
+
+[dependencies]
+windows-sys = { workspace = true, features = [
+    "Win32_Foundation",
+    "Win32_System_LibraryLoader",
+    "Win32_System_SystemInformation",
+    "Win32_System_Threading",
+    "Win32_System_Time",
+] }

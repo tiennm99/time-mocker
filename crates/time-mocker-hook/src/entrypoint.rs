@@ -14,7 +14,7 @@ use std::ffi::{c_void, OsStr};
 use std::os::windows::ffi::OsStrExt;
 use std::ptr;
 
-use time_mocker_core::{mmf_name_for_pid, SharedDeltaReader};
+use time_mocker_core::{local_mmf_name_for_pid, mmf_name_for_pid, SharedDeltaReader};
 use windows_sys::Win32::Foundation::{CloseHandle, BOOL, HMODULE, TRUE};
 use windows_sys::Win32::System::Diagnostics::Debug::OutputDebugStringW;
 use windows_sys::Win32::System::LibraryLoader::DisableThreadLibraryCalls;
@@ -57,16 +57,23 @@ unsafe extern "system" fn bootstrap_thread(_param: *mut c_void) -> u32 {
 
 fn bootstrap() {
     let pid = unsafe { GetCurrentProcessId() };
-    let name = mmf_name_for_pid(pid);
+    let global = mmf_name_for_pid(pid);
+    let local = local_mmf_name_for_pid(pid);
 
-    let shared = match SharedDeltaReader::open(&name) {
+    // Probe Global\ first (matches the elevated controller's preferred namespace);
+    // fall back to Local\ for the unelevated dev/debug controller path. Either
+    // name owns an identical 8-byte payload — whichever exists wins.
+    let shared = match SharedDeltaReader::open(&global) {
         Ok(s) => s,
-        Err(e) => {
-            // Controller didn't set up the MMF (cross-session DACL, stale inject,
-            // or never-injected debug case). Surface via OutputDebugStringW for DbgView.
-            dbg_log(&format!("time-mocker: open MMF '{name}' failed: {e}"));
-            return;
-        }
+        Err(e_global) => match SharedDeltaReader::open(&local) {
+            Ok(s) => s,
+            Err(e_local) => {
+                dbg_log(&format!(
+                    "time-mocker: open MMF '{global}' ({e_global}) and '{local}' ({e_local}) both failed"
+                ));
+                return;
+            }
+        },
     };
 
     // Best-effort install. Detours stay armed for the lifetime of the host

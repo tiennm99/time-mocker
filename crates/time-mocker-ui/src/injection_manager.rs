@@ -13,9 +13,16 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, Context, Result};
 use dll_syringe::process::OwnedProcess;
 use dll_syringe::Syringe;
-use time_mocker_core::{mmf_name_for_pid, CreateOutcome, SharedDeltaWriter};
+use time_mocker_core::{
+    local_mmf_name_for_pid, mmf_name_for_pid, CreateOutcome, SharedDeltaWriter,
+};
 
 use crate::win32_process_info::{is_native_x64, query_full_image_name, IMAGE_FILE_MACHINE_AMD64};
+
+/// Windows `ERROR_ACCESS_DENIED`. `CreateFileMappingW` on a `Global\` name returns
+/// this when the caller's token lacks `SeCreateGlobalPrivilege` (i.e. the UI is
+/// not running elevated). We use it as the trigger to fall back to `Local\`.
+const ERROR_ACCESS_DENIED: i32 = 5;
 
 /// Critical Windows processes that must never be injected — they would
 /// destabilize the OS, fail with access denied, or trigger AV alerts.
@@ -59,6 +66,9 @@ pub struct InjectionManager {
     injected: HashMap<u32, InjectedProcess>,
     hook_dll_path: PathBuf,
     pub log: VecDeque<String>,
+    /// One-shot guard so the "running unelevated → Local\ fallback" warning is
+    /// logged once per session, not on every auto-inject scan tick.
+    local_fallback_warned: bool,
 }
 
 impl InjectionManager {
@@ -85,6 +95,7 @@ impl InjectionManager {
             injected: HashMap::new(),
             hook_dll_path,
             log: VecDeque::new(),
+            local_fallback_warned: false,
         })
     }
 
@@ -94,6 +105,36 @@ impl InjectionManager {
 
     pub fn is_injected(&self, pid: u32) -> bool {
         self.injected.contains_key(&pid)
+    }
+
+    /// Try `Global\TimeMocker_<pid>` first, then fall back to
+    /// `Local\TimeMocker_<pid>` on ERROR_ACCESS_DENIED (the controller is not
+    /// elevated). Cross-session reach is lost in the fallback path, but the
+    /// hook DLL probes both namespaces so same-session targets still work.
+    fn create_mmf_with_fallback(
+        &mut self,
+        pid: u32,
+    ) -> Result<(String, SharedDeltaWriter, CreateOutcome)> {
+        let global = mmf_name_for_pid(pid);
+        match SharedDeltaWriter::create(&global) {
+            Ok((delta, outcome)) => Ok((global, delta, outcome)),
+            Err(e) if e.raw_os_error() == Some(ERROR_ACCESS_DENIED) => {
+                if !self.local_fallback_warned {
+                    self.local_fallback_warned = true;
+                    self.log_push(
+                        "warn: controller not elevated — falling back to Local\\ namespace; \
+                         cross-session targets will not be reachable. Run as Administrator \
+                         (release build) for full reach.".into(),
+                    );
+                }
+                let local = local_mmf_name_for_pid(pid);
+                let (delta, outcome) = SharedDeltaWriter::create(&local).with_context(|| {
+                    format!("create MMF {local} (after {global} returned access denied)")
+                })?;
+                Ok((local, delta, outcome))
+            }
+            Err(e) => Err(anyhow::Error::from(e).context(format!("create MMF {global}"))),
+        }
     }
 
     #[allow(dead_code)]
@@ -152,9 +193,7 @@ impl InjectionManager {
             ));
         }
 
-        let mmf_name = mmf_name_for_pid(pid);
-        let (delta, outcome) = SharedDeltaWriter::create(&mmf_name)
-            .with_context(|| format!("create MMF {mmf_name}"))?;
+        let (mmf_name, delta, outcome) = self.create_mmf_with_fallback(pid)?;
         if outcome == CreateOutcome::Existed {
             self.log_push(format!(
                 "warn: MMF {mmf_name} pre-existed (stale prior session?)"
@@ -361,6 +400,7 @@ mod tests {
             injected: HashMap::new(),
             hook_dll_path: std::path::PathBuf::from("dummy.dll"),
             log: VecDeque::new(),
+            local_fallback_warned: false,
         };
 
         // Push LOG_CAP + 100 entries and verify only LOG_CAP remain
