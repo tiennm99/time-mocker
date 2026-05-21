@@ -50,6 +50,11 @@ pub struct TimeMockerApp {
     fake_hour: u32,
     fake_minute: u32,
     fake_second: u32,
+    /// Month being browsed in the calendar popup. Decoupled from `fake_*` so
+    /// chevroning months doesn't move the selection. Re-synced to `fake_year` /
+    /// `fake_month` every time the popup is opened from the top-bar button.
+    picker_view_year: i32,
+    picker_view_month: u32,
     current_delta_ticks: i64,
     status_msg: Option<String>,
 }
@@ -92,6 +97,8 @@ impl TimeMockerApp {
             fake_hour: time.hour(),
             fake_minute: time.minute(),
             fake_second: time.second(),
+            picker_view_year: date.year(),
+            picker_view_month: date.month(),
             current_delta_ticks: 0,
             status_msg: None,
         }
@@ -191,41 +198,287 @@ impl TimeMockerApp {
     }
 
     fn ui_top_bar(&mut self, ui: &mut egui::Ui) {
+        let popup_id = ui.make_persistent_id("datetime_picker_popup");
+        let button_resp = ui
+            .horizontal(|ui| {
+                ui.heading("Mock Time");
+                ui.separator();
+
+                let label = format!(
+                    "{:04}-{:02}-{:02} {:02}:{:02}:{:02} ▼",
+                    self.fake_year,
+                    self.fake_month,
+                    self.fake_day,
+                    self.fake_hour,
+                    self.fake_minute,
+                    self.fake_second
+                );
+                let button_resp = ui.button(label);
+                if button_resp.clicked() {
+                    // Sync the popup's browse-month to the currently selected
+                    // month *before* toggling. If popup was closed → opens at
+                    // the selected month; if it was open → re-toggle closes it
+                    // and the sync is a harmless no-op.
+                    self.picker_view_year = self.fake_year;
+                    self.picker_view_month = self.fake_month;
+                    ui.memory_mut(|mem| mem.toggle_popup(popup_id));
+                }
+
+                if ui.button("Now").clicked() {
+                    self.reset_to_now_and_apply();
+                }
+
+                ui.separator();
+                let delta_secs = self.current_delta_ticks as f64 / 10_000_000.0;
+                ui.label(format!("Δ = {delta_secs:+.1}s"));
+
+                button_resp
+            })
+            .inner;
+
+        // Popup rendered as an Area positioned below the datetime button.
+        // CloseOnClickOutside is the default non-destructive dismiss; Esc
+        // inside the popup is handled by `ui_picker_popup` directly.
+        egui::popup_below_widget(
+            ui,
+            popup_id,
+            &button_resp,
+            egui::PopupCloseBehavior::CloseOnClickOutside,
+            |ui| {
+                ui.set_min_width(260.0);
+                ui.set_max_width(320.0);
+                self.ui_picker_popup(ui);
+            },
+        );
+
+        if let Some(msg) = &self.status_msg {
+            ui.colored_label(egui::Color32::YELLOW, msg);
+        }
+    }
+
+    fn ui_picker_popup(&mut self, ui: &mut egui::Ui) {
+        // Esc dismisses without committing. CloseOnClickOutside doesn't cover
+        // keyboard escape on its own.
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+            ui.memory_mut(|mem| mem.close_popup());
+            return;
+        }
+
+        // Month-nav header — chevrons clamp at MIN_YEAR-01 / MAX_YEAR-12 so
+        // the user can't browse outside the supported FILETIME range.
         ui.horizontal(|ui| {
-            ui.heading("Mock Time");
-            ui.separator();
+            let can_prev =
+                self.picker_view_year > MIN_YEAR || self.picker_view_month > 1;
+            if ui
+                .add_enabled(can_prev, egui::Button::new("◀"))
+                .clicked()
+            {
+                if self.picker_view_month == 1 {
+                    self.picker_view_year -= 1;
+                    self.picker_view_month = 12;
+                } else {
+                    self.picker_view_month -= 1;
+                }
+            }
+            ui.with_layout(
+                egui::Layout::top_down(egui::Align::Center),
+                |ui| {
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "{} {}",
+                            month_name(self.picker_view_month),
+                            self.picker_view_year
+                        ))
+                        .strong(),
+                    );
+                },
+            );
+            let can_next =
+                self.picker_view_year < MAX_YEAR || self.picker_view_month < 12;
+            if ui
+                .add_enabled(can_next, egui::Button::new("▶"))
+                .clicked()
+            {
+                if self.picker_view_month == 12 {
+                    self.picker_view_year += 1;
+                    self.picker_view_month = 1;
+                } else {
+                    self.picker_view_month += 1;
+                }
+            }
+        });
 
-            ui.label("Date:");
-            ui.add(egui::DragValue::new(&mut self.fake_year).range(MIN_YEAR..=MAX_YEAR));
-            ui.label("-");
-            ui.add(egui::DragValue::new(&mut self.fake_month).range(1..=12));
-            ui.label("-");
-            // Clamp day to the picked month's max so leap-year/short-month edits
-            // don't roll over silently.
-            let max_day = days_in_month(self.fake_year, self.fake_month);
-            ui.add(egui::DragValue::new(&mut self.fake_day).range(1..=max_day));
+        ui.separator();
+        self.ui_calendar_grid(ui);
+        ui.separator();
 
+        // Time row — three DragValues to match the existing input style.
+        ui.horizontal(|ui| {
             ui.label("Time:");
             ui.add(egui::DragValue::new(&mut self.fake_hour).range(0..=23));
             ui.label(":");
             ui.add(egui::DragValue::new(&mut self.fake_minute).range(0..=59));
             ui.label(":");
             ui.add(egui::DragValue::new(&mut self.fake_second).range(0..=59));
-
-            if ui.button("Now").clicked() {
-                self.reset_to_now_and_apply();
-            }
-            if ui.button("Set").clicked() {
-                self.apply_fake_time();
-            }
-            ui.separator();
-            let delta_secs = self.current_delta_ticks as f64 / 10_000_000.0;
-            ui.label(format!("Δ = {delta_secs:+.1}s"));
         });
 
-        if let Some(msg) = &self.status_msg {
-            ui.colored_label(egui::Color32::YELLOW, msg);
-        }
+        // Quick-select row: Now / Midnight / Noon / -1d / +1d.
+        ui.horizontal(|ui| {
+            if ui.button("Now").clicked() {
+                use chrono::{Datelike, Timelike};
+                let now = Local::now();
+                let d = now.date_naive();
+                let t = now.time();
+                self.fake_year = d.year();
+                self.fake_month = d.month();
+                self.fake_day = d.day();
+                self.fake_hour = t.hour();
+                self.fake_minute = t.minute();
+                self.fake_second = t.second();
+                self.picker_view_year = self.fake_year;
+                self.picker_view_month = self.fake_month;
+            }
+            if ui.button("Midnight").clicked() {
+                self.fake_hour = 0;
+                self.fake_minute = 0;
+                self.fake_second = 0;
+            }
+            if ui.button("Noon").clicked() {
+                self.fake_hour = 12;
+                self.fake_minute = 0;
+                self.fake_second = 0;
+            }
+            if ui.button("-1d").clicked() {
+                self.shift_day(-1);
+            }
+            if ui.button("+1d").clicked() {
+                self.shift_day(1);
+            }
+        });
+
+        ui.separator();
+
+        // Apply row — right-aligned primary action.
+        ui.with_layout(
+            egui::Layout::right_to_left(egui::Align::Center),
+            |ui| {
+                if ui
+                    .add(egui::Button::new("Apply").min_size(egui::vec2(80.0, 0.0)))
+                    .clicked()
+                {
+                    self.apply_fake_time();
+                    ui.memory_mut(|mem| mem.close_popup());
+                }
+            },
+        );
+    }
+
+    fn ui_calendar_grid(&mut self, ui: &mut egui::Ui) {
+        use chrono::Datelike;
+
+        // First day of the view month (used to compute leading offset).
+        let first = NaiveDate::from_ymd_opt(
+            self.picker_view_year,
+            self.picker_view_month,
+            1,
+        )
+        .unwrap_or_else(|| {
+            NaiveDate::from_ymd_opt(2000, 1, 1)
+                .expect("2000-01-01 is a valid date")
+        });
+        let first_weekday = first.weekday().num_days_from_sunday() as i32; // 0=Sun..6=Sat
+        let today = Local::now().date_naive();
+
+        egui::Grid::new("calendar_grid")
+            .num_columns(7)
+            .spacing([4.0, 2.0])
+            .show(ui, |ui| {
+                // Day-of-week header.
+                for name in ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] {
+                    ui.label(
+                        egui::RichText::new(name)
+                            .small()
+                            .color(egui::Color32::from_gray(160)),
+                    );
+                }
+                ui.end_row();
+
+                // 6 rows × 7 cols, each cell = first + (idx - leading_offset) days.
+                for row in 0..6 {
+                    for col in 0..7 {
+                        let cell_idx = row * 7 + col;
+                        let day_offset = cell_idx - first_weekday;
+                        let cell_date = first
+                            .checked_add_signed(chrono::Duration::days(day_offset as i64))
+                            .unwrap_or(first);
+
+                        let in_month = cell_date.month() == self.picker_view_month
+                            && cell_date.year() == self.picker_view_year;
+                        let is_selected = cell_date.year() == self.fake_year
+                            && cell_date.month() == self.fake_month
+                            && cell_date.day() == self.fake_day;
+                        let is_today = cell_date == today;
+
+                        // Build button: dim out-of-month, fill selected,
+                        // outline today (unless today is also the selected day).
+                        let mut text =
+                            egui::RichText::new(format!("{:>2}", cell_date.day()));
+                        if !in_month {
+                            text = text.color(egui::Color32::from_gray(110));
+                        }
+                        let mut btn =
+                            egui::Button::new(text).min_size(egui::vec2(28.0, 22.0));
+                        if is_selected {
+                            btn = btn.fill(egui::Color32::from_rgb(70, 130, 220));
+                        }
+                        if is_today && !is_selected {
+                            btn = btn.stroke(egui::Stroke::new(
+                                1.0_f32,
+                                egui::Color32::from_rgb(100, 200, 255),
+                            ));
+                        }
+
+                        if ui.add(btn).clicked() {
+                            // Clamp year before commit so an out-of-month click
+                            // near 1970-01 or 2200-12 can't escape range bounds.
+                            let y = cell_date.year().clamp(MIN_YEAR, MAX_YEAR);
+                            self.fake_year = y;
+                            self.fake_month = cell_date.month();
+                            self.fake_day = cell_date.day();
+                            // If user clicked an out-of-month dim cell, jump
+                            // the view to that month too.
+                            if !in_month {
+                                self.picker_view_year = y;
+                                self.picker_view_month = cell_date.month();
+                            }
+                        }
+                    }
+                    ui.end_row();
+                }
+            });
+    }
+
+    /// Shift the picker date by `delta` whole days, clamping year to
+    /// `MIN_YEAR..=MAX_YEAR`. Time stays the same. Keeps the popup view in
+    /// sync with the new month.
+    fn shift_day(&mut self, delta: i64) {
+        use chrono::Datelike;
+        let Some(naive) = self.picked_naive_dt() else {
+            self.status_msg = Some("invalid date/time fields".into());
+            return;
+        };
+        let Some(shifted) =
+            naive.checked_add_signed(chrono::Duration::days(delta))
+        else {
+            return;
+        };
+        let d = shifted.date();
+        let y = d.year().clamp(MIN_YEAR, MAX_YEAR);
+        self.fake_year = y;
+        self.fake_month = d.month();
+        self.fake_day = d.day();
+        self.picker_view_year = y;
+        self.picker_view_month = d.month();
     }
 
     fn ui_processes(&mut self, ui: &mut egui::Ui) {
@@ -410,17 +663,22 @@ pub(crate) fn unix_micros_to_filetime_ticks(unix_micros: i64) -> Option<i64> {
         .and_then(|v| UNIX_TO_FILETIME_TICKS.checked_add(v))
 }
 
-pub(crate) fn days_in_month(year: i32, month: u32) -> u32 {
-    // Compute via chrono so leap years are correct.
-    let next_month = if month == 12 { 1 } else { month + 1 };
-    let next_year = if month == 12 { year + 1 } else { year };
-    NaiveDate::from_ymd_opt(next_year, next_month, 1)
-        .and_then(|d| d.pred_opt())
-        .map(|d| {
-            use chrono::Datelike;
-            d.day()
-        })
-        .unwrap_or(31)
+pub(crate) fn month_name(month: u32) -> &'static str {
+    match month {
+        1 => "January",
+        2 => "February",
+        3 => "March",
+        4 => "April",
+        5 => "May",
+        6 => "June",
+        7 => "July",
+        8 => "August",
+        9 => "September",
+        10 => "October",
+        11 => "November",
+        12 => "December",
+        _ => "?",
+    }
 }
 
 #[cfg(test)]
@@ -485,75 +743,4 @@ mod tests {
         assert!(result.is_some());
     }
 
-    #[test]
-    fn days_in_month_feb_leap_2020() {
-        assert_eq!(days_in_month(2020, 2), 29, "February 2020 is a leap year");
-    }
-
-    #[test]
-    fn days_in_month_feb_non_leap_2021() {
-        assert_eq!(days_in_month(2021, 2), 28, "February 2021 is not a leap year");
-    }
-
-    #[test]
-    fn days_in_month_feb_non_leap_1900() {
-        // 1900 is divisible by 100 but not 400, so not a leap year
-        assert_eq!(days_in_month(1900, 2), 28, "February 1900 is not a leap year");
-    }
-
-    #[test]
-    fn days_in_month_feb_leap_2000() {
-        // 2000 is divisible by 400, so it is a leap year
-        assert_eq!(days_in_month(2000, 2), 29, "February 2000 is a leap year");
-    }
-
-    #[test]
-    fn days_in_month_apr() {
-        assert_eq!(days_in_month(2024, 4), 30, "April has 30 days");
-    }
-
-    #[test]
-    fn days_in_month_dec() {
-        assert_eq!(days_in_month(2024, 12), 31, "December has 31 days");
-    }
-
-    #[test]
-    fn days_in_month_jan() {
-        assert_eq!(days_in_month(2024, 1), 31, "January has 31 days");
-    }
-
-    #[test]
-    fn days_in_month_jun() {
-        assert_eq!(days_in_month(2024, 6), 30, "June has 30 days");
-    }
-
-    #[test]
-    fn days_in_month_rollover_dec_to_jan() {
-        // When month=12, the function computes next_month=1, next_year=year+1
-        // It should still return 31 for December
-        assert_eq!(days_in_month(2024, 12), 31);
-    }
-
-    #[test]
-    fn days_in_month_consistent_with_chrono() {
-        use chrono::Datelike;
-        for year in [1970, 2000, 2020, 2024, 2025, 2100] {
-            for month in 1..=12 {
-                let result = days_in_month(year, month);
-                // Verify with chrono
-                let next_month = if month == 12 { 1 } else { month + 1 };
-                let next_year = if month == 12 { year + 1 } else { year };
-                if let Some(first_of_next) = NaiveDate::from_ymd_opt(next_year, next_month, 1) {
-                    if let Some(last_of_month) = first_of_next.pred_opt() {
-                        let expected = last_of_month.day();
-                        assert_eq!(
-                            result, expected,
-                            "days_in_month({}, {}) mismatch",
-                            year, month
-                        );
-                    }
-                }
-            }
-        }
-    }
 }
