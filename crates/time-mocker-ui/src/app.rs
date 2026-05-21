@@ -257,13 +257,6 @@ impl TimeMockerApp {
     }
 
     fn ui_picker_popup(&mut self, ui: &mut egui::Ui) {
-        // Esc dismisses without committing. CloseOnClickOutside doesn't cover
-        // keyboard escape on its own.
-        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
-            ui.memory_mut(|mem| mem.close_popup());
-            return;
-        }
-
         // Month-nav header — chevrons clamp at MIN_YEAR-01 / MAX_YEAR-12 so
         // the user can't browse outside the supported FILETIME range.
         ui.horizontal(|ui| {
@@ -358,7 +351,12 @@ impl TimeMockerApp {
 
         ui.separator();
 
-        // Apply row — right-aligned primary action.
+        // Apply row — right-aligned primary action. Enter (when not already
+        // consumed by a focused DragValue) is the keyboard shortcut; Esc
+        // dismisses without committing. Both checks use `consume_key` AFTER
+        // the inner widgets have rendered so DragValue's own
+        // commit-on-Enter / cancel-on-Esc behaviors still win when focused.
+        let mut apply_via_button = false;
         ui.with_layout(
             egui::Layout::right_to_left(egui::Align::Center),
             |ui| {
@@ -366,11 +364,24 @@ impl TimeMockerApp {
                     .add(egui::Button::new("Apply").min_size(egui::vec2(80.0, 0.0)))
                     .clicked()
                 {
-                    self.apply_fake_time();
-                    ui.memory_mut(|mem| mem.close_popup());
+                    apply_via_button = true;
                 }
             },
         );
+
+        let apply_via_enter = ui.input_mut(|i| {
+            i.consume_key(egui::Modifiers::NONE, egui::Key::Enter)
+        });
+        let cancel_via_esc = ui.input_mut(|i| {
+            i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)
+        });
+
+        if apply_via_button || apply_via_enter {
+            self.apply_fake_time();
+            ui.memory_mut(|mem| mem.close_popup());
+        } else if cancel_via_esc {
+            ui.memory_mut(|mem| mem.close_popup());
+        }
     }
 
     fn ui_calendar_grid(&mut self, ui: &mut egui::Ui) {
@@ -427,7 +438,7 @@ impl TimeMockerApp {
                             text = text.color(egui::Color32::from_gray(110));
                         }
                         let mut btn =
-                            egui::Button::new(text).min_size(egui::vec2(28.0, 22.0));
+                            egui::Button::new(text).min_size(egui::vec2(32.0, 32.0));
                         if is_selected {
                             btn = btn.fill(egui::Color32::from_rgb(70, 130, 220));
                         }
