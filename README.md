@@ -2,7 +2,7 @@
 
 A Windows tool that injects fake time into running processes by hooking Win32 time APIs. Written in Rust.
 
-> **Status:** Active development. This is the canonical implementation. Language-specific ports are available in [C# (EasyHook)](https://github.com/tiennm99/time-mocker-csharp) and [C++ (MS Detours)](https://github.com/tiennm99/time-mocker-cpp).
+> **Status:** Active development. This is the canonical implementation. Earlier C# (EasyHook) and C++ (MS Detours) ports are preserved in this repo's git history under `csharp/` and `cpp/` (removed from the working tree — their IPC tick epoch is incompatible with this implementation, see below).
 
 ## Architecture
 
@@ -89,5 +89,5 @@ Apache-2.0 — see [LICENSE](LICENSE).
 
 ## Related
 
-- [time-mocker-csharp](https://github.com/tiennm99/time-mocker-csharp) — C# / EasyHook implementation
-- [time-mocker-cpp](https://github.com/tiennm99/time-mocker-cpp) — C++ / MS Detours implementation
+- `csharp/`, `cpp/` — earlier C# (EasyHook) and C++ (MS Detours) ports, preserved in git history only: `git log -- csharp/ cpp/`
+- [`target/`](target/) — Java test target that validates injected fake time (also standalone at [time-mocker-target](https://github.com/tiennm99/time-mocker-target))
