@@ -90,4 +90,4 @@ Apache-2.0 — see [LICENSE](LICENSE).
 ## Related
 
 - `csharp/`, `cpp/` — earlier C# (EasyHook) and C++ (MS Detours) ports, preserved in git history only: `git log -- csharp/ cpp/`
-- [`target/`](target/) — Java test target that validates injected fake time (also standalone at [time-mocker-target](https://github.com/tiennm99/time-mocker-target))
+- [`target/`](target/) — Java test target that validates injected fake time
